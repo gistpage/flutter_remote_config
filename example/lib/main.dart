@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_remote_config/flutter_remote_config.dart';
 
 void main() async {
@@ -358,41 +359,149 @@ class LoadingScreen extends StatelessWidget {
   }
 }
 
-class WebViewDemo extends StatelessWidget {
+class WebViewDemo extends StatefulWidget {
   final String url;
 
   const WebViewDemo({required this.url});
 
   @override
+  State<WebViewDemo> createState() => _WebViewDemoState();
+}
+
+class _WebViewDemoState extends State<WebViewDemo> {
+  InAppWebViewController? webViewController;
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('重定向演示'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.web, size: 64, color: Colors.blue),
-            SizedBox(height: 16),
-            Text(
-              '这里应该显示网页内容',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text('URL: $url'),
-            SizedBox(height: 16),
-            Text(
-              '请安装 webview_flutter 插件来显示实际网页',
-              style: TextStyle(color: Colors.grey),
-            ),
-            SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('返回'),
+        title: const Text('重定向演示'),
+        actions: [
+          if (webViewController != null) ...[
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => webViewController!.reload(),
             ),
           ],
-        ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+              domStorageEnabled: true,
+              userAgent: 'Flutter Remote Config Demo',
+              cacheEnabled: true,
+              supportZoom: true,
+              builtInZoomControls: true,
+              displayZoomControls: false,
+              mediaPlaybackRequiresUserGesture: false,
+            ),
+            onWebViewCreated: (controller) {
+              webViewController = controller;
+            },
+            onLoadStart: (controller, url) {
+              setState(() {
+                isLoading = true;
+                errorMessage = null;
+              });
+            },
+            onLoadStop: (controller, url) {
+              setState(() {
+                isLoading = false;
+              });
+            },
+            onReceivedError: (controller, request, error) {
+              setState(() {
+                isLoading = false;
+                errorMessage = '加载失败: ${error.description}';
+              });
+            },
+            onReceivedHttpError: (controller, request, errorResponse) {
+              setState(() {
+                isLoading = false;
+                errorMessage = '网络错误: HTTP ${errorResponse.statusCode}';
+              });
+            },
+          ),
+          
+          // 加载指示器
+          if (isLoading)
+            Container(
+              color: Colors.white.withOpacity(0.8),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('正在加载演示页面...'),
+                  ],
+                ),
+              ),
+            ),
+          
+          // 错误提示
+          if (errorMessage != null && !isLoading)
+            Container(
+              color: Colors.white,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '演示地址:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        widget.url,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          isLoading = true;
+                          errorMessage = null;
+                        });
+                        webViewController?.reload();
+                      },
+                      child: const Text('重试'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('返回'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

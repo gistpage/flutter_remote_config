@@ -175,6 +175,33 @@ class LoadingScreen extends StatelessWidget {
 
 **🎉 完成！** 3分钟搞定远程重定向控制！
 
+## 🌐 内置 WebView 支持
+
+本包已内置 **flutter_inappwebview** 依赖，提供完整的WebView功能：
+
+### ✨ 特性
+- 🔥 **开箱即用**：无需额外安装webview插件
+- ⚡ **功能强大**：支持JavaScript、DOM存储、缓存等
+- 🎯 **智能错误处理**：网络错误自动提示和重试
+- 📱 **原生体验**：支持缩放、刷新等操作
+- 🔄 **加载状态**：实时显示页面加载进度
+
+### 📦 无需额外配置
+使用本包时，你**无需**在项目中再次添加webview相关依赖：
+```yaml
+# ❌ 不需要额外添加
+dependencies:
+  # webview_flutter: ^4.0.0  # 不需要
+  # flutter_inappwebview: ^6.0.0  # 已内置
+```
+
+### 🎮 自动 WebView 行为
+当配置启用重定向时，应用会自动：
+1. 📊 显示加载进度指示器
+2. 🌐 打开内置WebView加载目标页面
+3. ⚠️ 智能处理网络错误和异常
+4. 🔄 提供刷新和重试功能
+
 ## 🌐 常用方法
 
 ### 🎯 检查重定向状态
