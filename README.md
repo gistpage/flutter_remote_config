@@ -17,25 +17,29 @@ and the Flutter guide for
 [![Flutter](https://img.shields.io/badge/Platform-Flutter-blue.svg)](https://flutter.dev)
 [![GitHub](https://img.shields.io/badge/Source-GitHub-black.svg)](https://github.com)
 
-一个**超简单**的 Flutter 重定向控制包，通过 GitHub Gist 远程控制应用是否跳转到指定地址。
+一个**超简单**的 Flutter 远程配置和重定向控制包，通过 GitHub Gist 远程控制应用行为。
 
-> **🚀 30秒快速集成**，一行代码实现远程重定向控制！
+> **🚀 30秒快速集成**，一行代码实现远程重定向控制！**✅ 已通过真机测试验证**
 
 ## 🎯 这个包能帮你做什么
 
-**核心功能**：根据 GitHub Gist 中的配置，决定应用是否跳转到某个地址
+**核心功能**：根据 GitHub Gist 中的配置，决定应用是否跳转到指定地址
 
 **典型场景**：
 - ✅ **App强制更新**：跳转到App Store更新页面
 - ✅ **维护通知**：跳转到维护说明页面  
 - ✅ **紧急公告**：跳转到重要通知页面
 - ✅ **活动推广**：跳转到活动页面
+- ✅ **灰度发布**：控制新功能的开关
+- ✅ **A/B测试**：动态切换不同的配置方案
 
 **为什么选择这个包**：
 - 🔥 **集成简单**：1行代码完成初始化
 - 🌐 **免费稳定**：基于GitHub Gist，全球CDN加速
 - ⚡ **几乎零流量**：智能缓存，网络优化
 - 📱 **自动更新**：应用切换时检查最新配置
+- 🎯 **即插即用**：内置WebView，无需额外配置
+- ✅ **生产就绪**：已通过真机测试验证
 
 ## 📦 安装
 
@@ -63,10 +67,40 @@ flutter pub get
 
 ### 3. iOS 配置（重要）
 
-如果你在 iOS 开发调试中遇到网络权限相关错误，请参考：
-📋 **[iOS 配置指南](IOS_CONFIGURATION.md)** - 解决 Flutter 调试模式网络权限问题
+**WebView 加载问题解决方案**：
 
-### 4. 添加导入
+如果在 iOS 上遇到 WebView 一直加载或无法访问网络的问题，请在 `ios/Runner/Info.plist` 中添加以下配置：
+
+```xml
+<!-- WebView 网络安全配置 -->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    <key>NSAllowsArbitraryLoadsInWebContent</key>
+    <true/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+</dict>
+
+<!-- WebView 嵌入视图支持 -->
+<key>io.flutter.embedded_views_preview</key>
+<true/>
+
+<!-- 网络使用描述 -->
+<key>NSLocalNetworkUsageDescription</key>
+<string>此应用需要访问网络以加载远程配置和重定向页面</string>
+```
+
+### 4. Android 配置
+
+在 `android/app/src/main/AndroidManifest.xml` 中确保有网络权限：
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+### 5. 添加导入
 
 在需要使用的 Dart 文件中添加导入：
 
@@ -86,7 +120,7 @@ import 'package:flutter_remote_config/flutter_remote_config.dart';
 {
   "version": "1",
   "isRedirectEnabled": true,
-  "redirectUrl": "https://example.com"
+  "redirectUrl": "https://flutter.dev"
 }
 ```
 
@@ -145,7 +179,20 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('我的应用')),
       body: Center(
-        child: Text('欢迎使用我的应用！'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('欢迎使用我的应用！'),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // 手动触发重定向检查
+                EasyRemoteConfig.redirectIfNeeded(context);
+              },
+              child: Text('检查重定向'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -156,7 +203,14 @@ class LoadingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('正在加载配置...'),
+          ],
+        ),
       ),
     );
   }
@@ -167,7 +221,7 @@ class LoadingScreen extends StatelessWidget {
 
 1. 运行应用：`flutter run`
 
-2. 当前配置 `isRedirectEnabled: true`，应用会跳转到 `https://example.com`
+2. 当前配置 `isRedirectEnabled: true`，应用会跳转到 `https://flutter.dev`
 
 3. 修改 Gist 配置测试：
    - `isRedirectEnabled: false` → 显示你的正常应用
@@ -185,6 +239,8 @@ class LoadingScreen extends StatelessWidget {
 - 🎯 **智能错误处理**：网络错误自动提示和重试
 - 📱 **原生体验**：支持缩放、刷新等操作
 - 🔄 **加载状态**：实时显示页面加载进度
+- ⏱️ **超时保护**：30秒超时避免无限加载
+- 🛡️ **错误恢复**：网络错误时提供重试选项
 
 ### 📦 无需额外配置
 使用本包时，你**无需**在项目中再次添加webview相关依赖：
@@ -201,6 +257,8 @@ dependencies:
 2. 🌐 打开内置WebView加载目标页面
 3. ⚠️ 智能处理网络错误和异常
 4. 🔄 提供刷新和重试功能
+5. ⏱️ 30秒超时保护避免卡死
+6. 🔙 随时可以返回应用
 
 ## 🌐 常用方法
 
@@ -219,9 +277,22 @@ bool isEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
 // 使用示例
 if (EasyRemoteConfig.instance.shouldRedirect) {
   String url = EasyRemoteConfig.instance.redirectUrl;
-  // 处理跳转逻辑，比如打开浏览器
-  launchUrl(Uri.parse(url));
+  print('需要跳转到: $url');
 }
+```
+
+### 🚀 手动触发重定向
+
+```dart
+// 在任何地方手动触发重定向检查
+EasyRemoteConfig.redirectIfNeeded(
+  context,
+  onBack: () {
+    // 用户从重定向页面返回时的回调
+    print('用户返回了');
+  },
+  title: '重定向页面', // 自定义页面标题
+);
 ```
 
 ### 🎨 自动重定向组件
@@ -242,6 +313,19 @@ class MyApp extends StatelessWidget {
 }
 ```
 
+### 📊 获取配置值
+
+```dart
+// 获取任意配置值
+String version = EasyRemoteConfig.instance.getString('version', '1');
+bool customFlag = EasyRemoteConfig.instance.getBool('customFlag', false);
+int timeout = EasyRemoteConfig.instance.getInt('timeout', 30);
+
+// 获取所有配置
+Map<String, dynamic> allConfig = EasyRemoteConfig.instance.getAllConfig();
+print('当前配置: $allConfig');
+```
+
 ## 🔧 实用技巧
 
 ### 手动刷新配置
@@ -249,6 +333,13 @@ class MyApp extends StatelessWidget {
 ```dart
 // 手动检查最新配置
 await EasyRemoteConfig.instance.refresh();
+
+// 带回调的刷新
+EasyRemoteConfig.instance.refresh().then((_) {
+  print('配置已更新');
+}).catchError((error) {
+  print('配置更新失败: $error');
+});
 ```
 
 ### 监听配置变化
@@ -258,6 +349,9 @@ await EasyRemoteConfig.instance.refresh();
 EasyRemoteConfig.instance.listen(() {
   print('配置已更新');
   // 处理配置变化
+  if (EasyRemoteConfig.instance.shouldRedirect) {
+    // 新的重定向配置生效
+  }
 });
 ```
 
@@ -272,6 +366,8 @@ await EasyRemoteConfig.init(
     'version': '1',
     'isRedirectEnabled': false,
     'redirectUrl': '',
+    'customFlag': true,
+    'timeout': 30,
   },
 );
 ```
@@ -298,6 +394,16 @@ RemoteConfigDebugHelper.enableDebug(enableHealthCheck: true);
 Navigator.push(context, MaterialPageRoute(
   builder: (context) => ConfigDebugPanel(),
 ));
+
+// 或者在开发环境中添加浮动调试按钮
+FloatingActionButton(
+  onPressed: () {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (context) => ConfigDebugPanel(),
+    ));
+  },
+  child: Icon(Icons.bug_report),
+)
 ```
 
 ### 3. 健康状态检查
@@ -310,6 +416,10 @@ print('配置是否正常: ${healthStatus['initialized']}');
 // 🔍 诊断配置问题
 final diagnosis = RemoteConfigDebugHelper.diagnoseConfig();
 print('诊断结果: ${diagnosis['overall']}');
+
+// 获取详细的系统信息
+final systemInfo = RemoteConfigDebugHelper.getSystemInfo();
+print('系统信息: $systemInfo');
 ```
 
 ## 🎯 典型使用场景
@@ -320,12 +430,32 @@ print('诊断结果: ${diagnosis['overall']}');
 // {
 //   "version": "1",
 //   "isRedirectEnabled": true,
-//   "redirectUrl": "https://apps.apple.com/app/yourapp"
+//   "redirectUrl": "https://apps.apple.com/app/yourapp",
+//   "updateMessage": "发现新版本，请更新应用"
 // }
 
 if (EasyRemoteConfig.instance.shouldRedirect) {
   String appStoreUrl = EasyRemoteConfig.instance.redirectUrl;
-  launchUrl(Uri.parse(appStoreUrl)); // 跳转到App Store
+  String message = EasyRemoteConfig.instance.getString('updateMessage', '需要更新');
+  
+  // 显示更新提示
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text('应用更新'),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            EasyRemoteConfig.redirectIfNeeded(context);
+          },
+          child: Text('立即更新'),
+        ),
+      ],
+    ),
+  );
 }
 ```
 
@@ -335,22 +465,125 @@ if (EasyRemoteConfig.instance.shouldRedirect) {
 // {
 //   "version": "1",
 //   "isRedirectEnabled": true, 
-//   "redirectUrl": "https://yoursite.com/maintenance"
+//   "redirectUrl": "https://yoursite.com/maintenance",
+//   "maintenanceMode": true,
+//   "maintenanceMessage": "系统维护中，预计2小时后恢复"
 // }
 
-// 自动跳转到维护说明页面
+// 检查维护模式
+if (EasyRemoteConfig.instance.getBool('maintenanceMode', false)) {
+  // 自动跳转到维护说明页面
+  EasyRemoteConfig.redirectIfNeeded(context, title: '系统维护');
+}
 ```
 
-### 3. 活动推广
+### 3. 功能开关控制
 ```dart
 // Gist 配置：
 // {
 //   "version": "1",
-//   "isRedirectEnabled": true,
-//   "redirectUrl": "https://yoursite.com/activity"
+//   "features": {
+//     "newUI": true,
+//     "betaFeature": false,
+//     "advancedMode": true
+//   }
 // }
 
-// 自动跳转到活动页面
+// 根据远程配置控制功能显示
+Widget buildUI() {
+  bool useNewUI = EasyRemoteConfig.instance.getBool('features.newUI', false);
+  bool showBeta = EasyRemoteConfig.instance.getBool('features.betaFeature', false);
+  
+  return useNewUI ? NewUIWidget() : OldUIWidget();
+}
+```
+
+### 4. A/B测试
+```dart
+// Gist 配置：
+// {
+//   "version": "1",
+//   "abTest": {
+//     "buttonColor": "blue",  // 或 "red"
+//     "layoutType": "grid",   // 或 "list"
+//     "showAds": true
+//   }
+// }
+
+// 根据A/B测试配置调整界面
+Widget buildButton() {
+  String buttonColor = EasyRemoteConfig.instance.getString('abTest.buttonColor', 'blue');
+  
+  return ElevatedButton(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: buttonColor == 'red' ? Colors.red : Colors.blue,
+    ),
+    onPressed: () {},
+    child: Text('测试按钮'),
+  );
+}
+```
+
+## 🔧 高级配置
+
+### 复杂配置示例
+
+```json
+{
+  "version": "2",
+  "isRedirectEnabled": false,
+  "redirectUrl": "",
+  "features": {
+    "newUI": true,
+    "darkMode": false,
+    "notifications": true
+  },
+  "abTest": {
+    "group": "A",
+    "buttonColor": "blue",
+    "showWelcome": true
+  },
+  "maintenance": {
+    "enabled": false,
+    "message": "系统维护中",
+    "startTime": "2024-01-01T10:00:00Z",
+    "endTime": "2024-01-01T12:00:00Z"
+  },
+  "update": {
+    "required": false,
+    "version": "1.0.0",
+    "url": "https://apps.apple.com/app/yourapp"
+  }
+}
+```
+
+### 使用复杂配置
+
+```dart
+// 检查维护时间
+String startTime = EasyRemoteConfig.instance.getString('maintenance.startTime', '');
+if (startTime.isNotEmpty) {
+  DateTime maintenanceStart = DateTime.parse(startTime);
+  if (DateTime.now().isAfter(maintenanceStart)) {
+    // 进入维护模式
+  }
+}
+
+// A/B测试分组
+String testGroup = EasyRemoteConfig.instance.getString('abTest.group', 'A');
+switch (testGroup) {
+  case 'A':
+    // 显示版本A的界面
+    break;
+  case 'B':
+    // 显示版本B的界面
+    break;
+}
+
+// 功能开关
+Map<String, dynamic> features = EasyRemoteConfig.instance.getMap('features', {});
+bool newUIEnabled = features['newUI'] ?? false;
+bool darkModeEnabled = features['darkMode'] ?? false;
 ```
 
 ## 🔧 技术特性
@@ -359,6 +592,13 @@ if (EasyRemoteConfig.instance.shouldRedirect) {
 - 📱 **应用切换检测**：从后台恢复时自动检查最新配置
 - ⚡ **网络优化**：ETag 缓存技术，减少重复下载
 - 🔄 **自动更新**：确保总是使用最新的跳转配置
+- 💾 **本地存储**：配置本地缓存，离线时使用缓存数据
+
+### 错误处理
+- 🛡️ **网络异常处理**：自动重试机制
+- ⏱️ **超时保护**：避免长时间等待
+- 🔄 **降级策略**：网络失败时使用本地缓存
+- 📊 **错误统计**：记录错误信息便于调试
 
 ## ⚙️ 配置选项
 
@@ -367,6 +607,8 @@ await EasyRemoteConfig.init(
   gistId: 'your-gist-id',        // 必需：GitHub Gist ID
   githubToken: 'your-token',     // 必需：GitHub Token
   debugMode: false,              // 可选：调试模式
+  cacheTimeout: 300,             // 可选：缓存超时时间（秒）
+  networkTimeout: 10,            // 可选：网络请求超时时间（秒）
   defaults: {                    // 可选：默认配置
     'version': '1',
     'isRedirectEnabled': false,
@@ -402,6 +644,34 @@ await EasyRemoteConfig.instance.refresh();
 EasyRemoteConfig.instance.listen(() {
   // 处理配置更新
 });
+
+// 手动触发重定向
+EasyRemoteConfig.redirectIfNeeded(context);
+```
+
+### 配置获取方法
+
+```dart
+// 获取字符串值
+String value = EasyRemoteConfig.instance.getString('key', 'defaultValue');
+
+// 获取布尔值
+bool flag = EasyRemoteConfig.instance.getBool('key', false);
+
+// 获取整数值
+int number = EasyRemoteConfig.instance.getInt('key', 0);
+
+// 获取双精度值
+double decimal = EasyRemoteConfig.instance.getDouble('key', 0.0);
+
+// 获取Map对象
+Map<String, dynamic> object = EasyRemoteConfig.instance.getMap('key', {});
+
+// 获取List数组
+List<dynamic> array = EasyRemoteConfig.instance.getList('key', []);
+
+// 获取所有配置
+Map<String, dynamic> allConfig = EasyRemoteConfig.instance.getAllConfig();
 ```
 
 ### 自动跳转组件
@@ -419,9 +689,11 @@ EasyRedirectWidgets.simpleRedirect(
 ```dart
 // ✅ 安全的重定向验证
 final redirectUrl = EasyRemoteConfig.instance.getString('redirectUrl', '');
-if (redirectUrl.isNotEmpty && redirectUrl.startsWith('https://')) {
-  // 只允许HTTPS重定向
-  navigate(redirectUrl);
+if (redirectUrl.isNotEmpty && (redirectUrl.startsWith('https://') || redirectUrl.startsWith('http://'))) {
+  // 只允许HTTP/HTTPS重定向
+  EasyRemoteConfig.redirectIfNeeded(context);
+} else {
+  print('不安全的重定向URL: $redirectUrl');
 }
 ```
 
@@ -436,6 +708,7 @@ try {
 } catch (e) {
   // 初始化失败时使用本地默认配置
   print('远程配置加载失败，使用默认配置: $e');
+  // 可以设置一些默认行为
 }
 ```
 
@@ -449,12 +722,22 @@ class MyWidget extends StatefulWidget {
 
 class _MyWidgetState extends State<MyWidget> {
   late bool _shouldRedirect;
+  late String _redirectUrl;
   
   @override
   void initState() {
     super.initState();
     // 缓存配置值
     _shouldRedirect = EasyRemoteConfig.instance.shouldRedirect;
+    _redirectUrl = EasyRemoteConfig.instance.redirectUrl;
+    
+    // 监听配置变化
+    EasyRemoteConfig.instance.listen(() {
+      setState(() {
+        _shouldRedirect = EasyRemoteConfig.instance.shouldRedirect;
+        _redirectUrl = EasyRemoteConfig.instance.redirectUrl;
+      });
+    });
   }
   
   @override
@@ -464,13 +747,26 @@ class _MyWidgetState extends State<MyWidget> {
 }
 ```
 
+### 4. 配置版本管理
+```dart
+// 📋 配置版本检查
+String configVersion = EasyRemoteConfig.instance.getString('version', '1');
+if (configVersion != '2') {
+  // 配置版本不匹配，可能需要特殊处理
+  print('配置版本不匹配，当前: $configVersion，期望: 2');
+}
+```
+
 ## 🐛 故障排除
 
 ### 常见问题及解决方案
 
 #### 1. Token 权限问题
 **问题**: `401 Unauthorized` 错误
-**解决**: 确保 Token 具有 `gist` 权限，检查 Token 是否过期
+**解决**: 
+- 确保 Token 具有 `gist` 权限
+- 检查 Token 是否过期
+- 验证 Token 格式正确（通常以 `ghp_` 开头）
 
 #### 2. 配置不更新
 **问题**: Gist 更新了但应用没反应
@@ -478,11 +774,37 @@ class _MyWidgetState extends State<MyWidget> {
 ```dart
 // 强制刷新配置
 await EasyRemoteConfig.instance.refresh();
+
+// 检查缓存是否过期
+print('上次更新时间: ${EasyRemoteConfig.instance.lastUpdateTime}');
 ```
 
-#### 3. 网络超时
+#### 3. WebView 加载问题
+**问题**: WebView 一直显示加载中
+**解决**: 
+- 检查 iOS Info.plist 权限配置
+- 确认目标URL可以正常访问
+- 检查网络连接状态
+- 使用调试模式查看详细错误信息
+
+#### 4. 网络超时
 **问题**: 请求 GitHub API 超时
-**解决**: 增加超时时间或检查网络连接
+**解决**: 
+```dart
+// 增加超时时间
+await EasyRemoteConfig.init(
+  gistId: 'your-gist-id',
+  githubToken: 'your-token',
+  networkTimeout: 30, // 增加到30秒
+);
+```
+
+#### 5. Gist ID 错误
+**问题**: `404 Not Found` 错误
+**解决**: 
+- 确认 Gist ID 正确（从URL中复制）
+- 确认 Gist 是公开的（public）
+- 检查 Gist 是否存在
 
 ### 调试步骤
 
@@ -507,6 +829,52 @@ Navigator.push(context, MaterialPageRoute(
 ```dart
 final healthStatus = RemoteConfigDebugHelper.getHealthStatus();
 print('配置状态: $healthStatus');
+
+// 获取详细诊断信息
+final diagnosis = RemoteConfigDebugHelper.diagnoseConfig();
+print('诊断结果: $diagnosis');
+```
+
+4. **验证网络连接**
+```dart
+// 手动测试 GitHub API 连接
+try {
+  await EasyRemoteConfig.instance.refresh();
+  print('网络连接正常');
+} catch (e) {
+  print('网络连接失败: $e');
+}
+```
+
+## 🔧 开发环境设置
+
+### 本地测试配置
+
+```dart
+// 开发环境使用测试配置
+await EasyRemoteConfig.init(
+  gistId: 'your-test-gist-id',    // 测试用的Gist ID
+  githubToken: 'your-token',
+  debugMode: true,                // 开启调试
+  defaults: {
+    'version': '1',
+    'isRedirectEnabled': false,   // 开发时默认不重定向
+    'redirectUrl': 'https://flutter.dev',
+  },
+);
+```
+
+### 生产环境配置
+
+```dart
+// 生产环境配置
+await EasyRemoteConfig.init(
+  gistId: 'your-production-gist-id',
+  githubToken: 'your-production-token',
+  debugMode: false,               // 关闭调试
+  cacheTimeout: 300,              // 5分钟缓存
+  networkTimeout: 10,             // 10秒网络超时
+);
 ```
 
 ## 🤝 贡献指南
@@ -519,22 +887,41 @@ print('配置状态: $healthStatus');
 4. **推送**到分支 (`git push origin feature/amazing-feature`)
 5. **提交** Pull Request
 
+### 开发环境设置
+
+```bash
+# 克隆项目
+git clone https://github.com/gistpage/flutter_remote_config.git
+cd flutter_remote_config
+
+# 安装依赖
+flutter pub get
+
+# 运行测试
+flutter test
+
+# 运行示例项目
+cd example
+flutter pub get
+flutter run
+```
+
 ### 版本管理策略
 
 ```yaml
-# 使用特定标签（推荐）
+# 使用特定标签（推荐生产环境）
 dependencies:
   flutter_remote_config:
     git:
       url: https://github.com/gistpage/flutter_remote_config.git
       ref: v1.0.0
 
-# 使用特定分支
+# 使用最新版本（开发环境）
 dependencies:
   flutter_remote_config:
     git:
       url: https://github.com/gistpage/flutter_remote_config.git
-      ref: develop
+      ref: main
 ```
 
 ## 📄 许可证
@@ -547,6 +934,21 @@ dependencies:
 - 💡 **功能建议**: [GitHub Discussions](https://github.com/gistpage/flutter_remote_config/discussions)
 - 📖 **文档**: 此 README 文档
 - 💬 **获取帮助**: 通过 GitHub Issues 提问
+
+## 🏆 成功案例
+
+> **✅ 真机测试验证**：本包已在 iPhone 15 Pro Max 上成功测试，WebView 加载正常，重定向功能完美运行。
+
+### 测试环境
+- **设备**: iPhone 15 Pro Max
+- **系统**: iOS 17+
+- **Flutter**: 3.0+
+- **测试场景**: 
+  - ✅ 远程配置加载
+  - ✅ WebView 重定向跳转
+  - ✅ 网络错误处理
+  - ✅ 超时保护机制
+  - ✅ 用户交互体验
 
 ---
 
@@ -567,4 +969,76 @@ Made with ❤️ for Flutter Community
 
 ---
 
-*最后更新时间: 2025-01-01 - 测试gistpage账户配置*
+*最后更新时间: 2025-01-01 - ✅ 真机测试验证通过*
+
+## ⚠️ 平台兼容性与WebView配置
+
+本包内置重定向WebView功能，依赖 [flutter_inappwebview](https://pub.dev/packages/flutter_inappwebview)。
+
+### iOS 需在 Info.plist 添加：
+```xml
+<key>NSAppTransportSecurity</key>
+<dict>
+  <key>NSAllowsArbitraryLoads</key>
+  <true/>
+  <key>NSAllowsArbitraryLoadsInWebContent</key>
+  <true/>
+</dict>
+<key>io.flutter.embedded_views_preview</key>
+<true/>
+<key>NSLocalNetworkUsageDescription</key>
+<string>此应用需要访问网络以加载远程配置和重定向页面</string>
+```
+
+### Android 需在 AndroidManifest.xml 添加：
+```xml
+<uses-permission android:name="android.permission.INTERNET"/>
+```
+
+如需更细致的WebView配置，请参考 [flutter_inappwebview官方文档](https://pub.dev/packages/flutter_inappwebview#android) 。
+
+## 🚀 自动重定向用法
+
+```dart
+// 初始化成功后自动检测并跳转
+await EasyRemoteConfig.init(...);
+EasyRemoteConfig.redirectIfNeeded(context);
+
+// 带回调的重定向
+EasyRemoteConfig.redirectIfNeeded(
+  context,
+  onBack: () => print('用户返回了'),
+  title: '重定向页面',
+);
+```
+
+## 🎯 快速测试指南
+
+想要快速测试包的功能？按照以下步骤：
+
+1. **使用示例配置**：
+```json
+{
+  "version": "1",
+  "isRedirectEnabled": true,
+  "redirectUrl": "https://flutter.dev"
+}
+```
+
+2. **运行示例项目**：
+```bash
+cd example
+flutter run
+```
+
+3. **修改配置测试**：
+   - 修改 Gist 中的 `isRedirectEnabled` 为 `false`
+   - 重新打开应用查看效果
+   - 修改 `redirectUrl` 测试不同的跳转地址
+
+4. **测试网络异常**：
+   - 断开网络连接
+   - 查看应用如何处理网络错误
+   - 重新连接网络测试自动恢复
+
+**🎉 开始使用吧！**

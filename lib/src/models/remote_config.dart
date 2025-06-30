@@ -39,8 +39,8 @@ class BasicRemoteConfig implements RemoteConfig {
     final version = json['version'] as String?;
     final data = Map<String, dynamic>.from(json);
     
-    // 移除version字段，其余作为data
-    data.remove('version');
+    // 保留version字段在data中，以确保向后兼容性
+    // 不移除version字段，让它在两个地方都可以访问
     
     return BasicRemoteConfig(
       version: version,

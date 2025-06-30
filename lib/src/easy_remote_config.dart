@@ -4,6 +4,8 @@ import 'manager/advanced_config_manager.dart';
 import 'config/remote_config_options.dart';
 import 'models/remote_config.dart';
 import 'state_management/config_state_manager.dart';
+import 'package:flutter/material.dart';
+import 'widgets/redirect_webview.dart';
 
 /// 🚀 简化API - 90%场景一行代码搞定
 /// 
@@ -190,6 +192,11 @@ class EasyRemoteConfig {
 
   /// 🌐 获取配置版本
   String get configVersion {
+    // 优先从version属性获取，其次从data中获取
+    final config = _currentConfig;
+    if (config?.version != null) {
+      return config!.version!;
+    }
     return getString('version', '1');
   }
 
@@ -232,6 +239,25 @@ class EasyRemoteConfig {
   void _checkInitialized() {
     if (!_initialized) {
       throw StateError('EasyRemoteConfig 未初始化！请先调用 EasyRemoteConfig.init()');
+    }
+  }
+
+  /// 自动检测并跳转重定向页面（推荐在初始化成功后调用）
+  /// 
+  /// context: BuildContext
+  /// onBack: 可选，重定向页面返回时的回调
+  static Future<void> redirectIfNeeded(BuildContext context, {VoidCallback? onBack, String? title}) async {
+    final instance = EasyRemoteConfig.instance;
+    if (instance.shouldRedirect && instance.redirectUrl.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RedirectWebView(
+            url: instance.redirectUrl,
+            onBack: onBack,
+            title: title,
+          ),
+        ),
+      );
     }
   }
 }

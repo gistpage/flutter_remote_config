@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 // 🚀 简化API (推荐使用)
 export 'src/easy_remote_config.dart';
 export 'src/config_builder.dart';
@@ -8,6 +10,7 @@ export 'src/redirect_config.dart';
 export 'src/widgets/improved_redirect_widgets.dart';
 export 'src/widgets/redirect_widgets.dart';
 export 'src/widgets/internal_widgets.dart';
+export 'src/widgets/redirect_webview.dart';
 
 // 🎯 状态管理 (新增)
 export 'src/state_management/config_state_manager.dart';
