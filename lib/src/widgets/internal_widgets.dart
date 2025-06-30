@@ -7,7 +7,7 @@ class InfoRow extends StatelessWidget {
   final String value;
   final TextStyle? style;
 
-  const InfoRow(this.label, this.value, this.style);
+  const InfoRow(this.label, this.value, this.style, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class InfoRow extends StatelessWidget {
 class WebViewPage extends StatefulWidget {
   final String url;
 
-  const WebViewPage({required this.url});
+  const WebViewPage({super.key, required this.url});
 
   @override
   State<WebViewPage> createState() => _WebViewPageState();
@@ -124,7 +124,7 @@ class _WebViewPageState extends State<WebViewPage> {
           // 加载指示器
           if (isLoading)
             Container(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

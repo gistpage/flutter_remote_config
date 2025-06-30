@@ -130,7 +130,7 @@ class _ConfigDebugPanelState extends State<ConfigDebugPanel> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

@@ -107,7 +107,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
       );
       
       // 检查配置是否有变化
-      if (_currentConfig == null || _hasConfigChanged(_currentConfig!, config)) {
+      if (_currentConfig == null || _hasConfigChanged(_currentConfig, config)) {
         _currentConfig = config;
         _notifyConfigChanged(config);
       }
@@ -209,7 +209,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
       
       // 通知初始配置
       if (_currentConfig != null) {
-        _notifyConfigChanged(_currentConfig!);
+        _notifyConfigChanged(_currentConfig as T);
       }
     } catch (e) {
       if (_options.enableDebugLogs) {
@@ -217,7 +217,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
       }
       // 使用默认配置
       _currentConfig = _defaultConfigFactory();
-      _notifyConfigChanged(_currentConfig!);
+      _notifyConfigChanged(_currentConfig as T);
     }
   }
 

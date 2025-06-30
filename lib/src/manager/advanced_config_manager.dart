@@ -159,7 +159,7 @@ class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver 
       );
       
       // 检查配置是否有变化
-      if (_currentConfig == null || _hasConfigChanged(_currentConfig!, config)) {
+      if (_currentConfig == null || _hasConfigChanged(_currentConfig, config)) {
         _currentConfig = config;
         _notifyConfigChanged(config);
       }
