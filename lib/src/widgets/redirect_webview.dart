@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter/cupertino.dart';
+import 'internal_widgets.dart';
 
 class RedirectWebView extends StatefulWidget {
   final String url;
@@ -25,6 +26,7 @@ class _RedirectWebViewState extends State<RedirectWebView> {
   @override
   void initState() {
     super.initState();
+    
     // 设置30秒超时保护
     Future.delayed(const Duration(seconds: 30), () {
       if (mounted && _isLoading && !_hasError) {
@@ -155,13 +157,13 @@ class _RedirectWebViewState extends State<RedirectWebView> {
                 ),
               ),
             ),
-          // 加载指示器（仅动画，无文字、无按钮、无目标地址）
+          // 优化的加载动画 - 更像app资源加载
           if (_isLoading && !_hasError && !_hasTimedOut)
-            Container(
-              color: Colors.white.withOpacity(0.9),
-              child: const Center(
-                child: CupertinoActivityIndicator(radius: 16),
-              ),
+            const AppLoadingWidget(
+              style: LoadingStyle.modern,
+              primaryColor: Colors.blue,
+              backgroundColor: Colors.white,
+              size: 80,
             ),
         ],
       ),
