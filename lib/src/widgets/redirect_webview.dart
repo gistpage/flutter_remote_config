@@ -46,74 +46,77 @@ class _RedirectWebViewState extends State<RedirectWebView> {
     return Scaffold(
       body: Stack(
         children: [
-          SafeArea(
-            child: InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-              onWebViewCreated: (controller) => _webViewController = controller,
-              onLoadStart: (controller, url) {
-                if (mounted) {
-                  setState(() {
-                    _isLoading = true;
-                    _hasError = false;
-                    _hasTimedOut = false;
-                  });
-                }
-              },
-              onLoadStop: (controller, url) async {
-                if (mounted) {
-                  setState(() => _isLoading = false);
-                  try {
-                    final title = await controller.getTitle();
-                    if (title != null && title.isNotEmpty && mounted) {
-                      setState(() => _currentTitle = title);
-                    }
-                  } catch (e) {
-                    // 忽略获取标题失败
+          Container(
+            color: Colors.white,
+            child: SafeArea(
+              child: InAppWebView(
+                initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+                onWebViewCreated: (controller) => _webViewController = controller,
+                onLoadStart: (controller, url) {
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = true;
+                      _hasError = false;
+                      _hasTimedOut = false;
+                    });
                   }
-                }
-              },
-              onTitleChanged: (controller, title) {
-                if (title != null && mounted) {
-                  setState(() => _currentTitle = title);
-                }
-              },
-              onReceivedError: (controller, request, error) {
-                if (mounted) {
-                  setState(() {
-                    _isLoading = false;
-                    _hasError = true;
-                    _errorMessage = error.description;
-                  });
-                }
-              },
-              onReceivedHttpError: (controller, request, errorResponse) {
-                if (mounted) {
-                  setState(() {
-                    _isLoading = false;
-                    _hasError = true;
-                    _errorMessage = 'HTTP错误: ${errorResponse.statusCode}';
-                  });
-                }
-              },
-              initialSettings: InAppWebViewSettings(
-                javaScriptEnabled: true,
-                domStorageEnabled: true,
-                databaseEnabled: true,
-                mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-                allowsBackForwardNavigationGestures: true,
-                allowsLinkPreview: true,
-                mediaPlaybackRequiresUserGesture: false,
-                allowsInlineMediaPlayback: true,
-                cacheEnabled: true,
-                clearCache: false,
-                allowsAirPlayForMediaPlayback: true,
-                allowsPictureInPictureMediaPlayback: true,
-                supportZoom: true,
-                builtInZoomControls: false,
-                displayZoomControls: false,
-                useShouldOverrideUrlLoading: false,
-                useOnDownloadStart: false,
-                useOnNavigationResponse: false,
+                },
+                onLoadStop: (controller, url) async {
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                    try {
+                      final title = await controller.getTitle();
+                      if (title != null && title.isNotEmpty && mounted) {
+                        setState(() => _currentTitle = title);
+                      }
+                    } catch (e) {
+                      // 忽略获取标题失败
+                    }
+                  }
+                },
+                onTitleChanged: (controller, title) {
+                  if (title != null && mounted) {
+                    setState(() => _currentTitle = title);
+                  }
+                },
+                onReceivedError: (controller, request, error) {
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = false;
+                      _hasError = true;
+                      _errorMessage = error.description;
+                    });
+                  }
+                },
+                onReceivedHttpError: (controller, request, errorResponse) {
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = false;
+                      _hasError = true;
+                      _errorMessage = 'HTTP错误: ${errorResponse.statusCode}';
+                    });
+                  }
+                },
+                initialSettings: InAppWebViewSettings(
+                  javaScriptEnabled: true,
+                  domStorageEnabled: true,
+                  databaseEnabled: true,
+                  mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+                  allowsBackForwardNavigationGestures: true,
+                  allowsLinkPreview: true,
+                  mediaPlaybackRequiresUserGesture: false,
+                  allowsInlineMediaPlayback: true,
+                  cacheEnabled: true,
+                  clearCache: false,
+                  allowsAirPlayForMediaPlayback: true,
+                  allowsPictureInPictureMediaPlayback: true,
+                  supportZoom: true,
+                  builtInZoomControls: false,
+                  displayZoomControls: false,
+                  useShouldOverrideUrlLoading: false,
+                  useOnDownloadStart: false,
+                  useOnNavigationResponse: false,
+                ),
               ),
             ),
           ),
