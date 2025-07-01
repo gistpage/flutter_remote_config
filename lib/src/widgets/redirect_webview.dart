@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter/cupertino.dart';
 import 'internal_widgets.dart';
+import '../easy_remote_config.dart';
+import 'dart:async';
 
 class RedirectWebView extends StatefulWidget {
   final String url;
@@ -22,6 +24,7 @@ class _RedirectWebViewState extends State<RedirectWebView> {
   bool _hasTimedOut = false;
   String _currentTitle = '';
   String _errorMessage = '';
+  late final StreamSubscription<void> _configSub; // 监听配置变化
 
   @override
   void initState() {
@@ -35,6 +38,14 @@ class _RedirectWebViewState extends State<RedirectWebView> {
           _isLoading = false;
           _errorMessage = '加载超时，请检查网络连接或iOS权限配置';
         });
+      }
+    });
+
+    // 监听配置变化，isRedirectEnabled 变为 false 时自动关闭页面
+    _configSub = EasyRemoteConfig.instance.listen(() {
+      if (!EasyRemoteConfig.instance.isRedirectEnabled && mounted) {
+        // 业务说明：当后台关闭重定向时，自动关闭 H5 页面，回到原生界面
+        Navigator.of(context).maybePop();
       }
     });
   }
@@ -217,5 +228,11 @@ class _RedirectWebViewState extends State<RedirectWebView> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _configSub.cancel();
+    super.dispose();
   }
 } 
