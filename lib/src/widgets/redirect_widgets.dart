@@ -80,7 +80,7 @@ class EasyRedirectWidgets {
 /// 2. 直接在 build 方法中进行状态判断
 /// 3. 避免在 build 中创建 Future 的反模式
 /// 4. 提供详细调试日志
-class _SimpleRedirectWidget extends StatefulWidget {
+class _SimpleRedirectWidget extends StatelessWidget {
   final Widget homeWidget;
   final Widget? loadingWidget;
   final Widget? errorWidget;
@@ -92,50 +92,29 @@ class _SimpleRedirectWidget extends StatefulWidget {
   });
 
   @override
-  State<_SimpleRedirectWidget> createState() => _SimpleRedirectWidgetState();
-}
-
-class _SimpleRedirectWidgetState extends State<_SimpleRedirectWidget> {
-  late final VoidCallback _listener;
-
-  @override
-  void initState() {
-    super.initState();
-    _listener = () {
-      if (mounted) {
-        print('🔔 [SimpleRedirect] 配置变化监听回调触发，准备 setState');
-        setState(() {});
-      } else {
-        print('⚠️ [SimpleRedirect] 配置变化监听回调触发，但未挂载');
-      }
-    };
-    print('🟢 [SimpleRedirect] 注册配置监听');
-    EasyRemoteConfig.instance.listen(_listener);
-  }
-
-  @override
   Widget build(BuildContext context) {
     print('🟣 [SimpleRedirect] build 方法被调用');
-    const debugMode = true; // 临时启用调试
+    const debugMode = true;
     if (debugMode) {
       print('🔧 SimpleRedirect: build 方法开始执行');
     }
-
-    try {
-      // 检查 EasyRemoteConfig 是否已初始化
-      if (EasyRemoteConfig.isInitialized) {
-        if (debugMode) {
-          print('🔧 SimpleRedirect: EasyRemoteConfig 已初始化');
+    return StreamBuilder<ConfigState>(
+      stream: EasyRemoteConfig.instance.configStateStream,
+      initialData: EasyRemoteConfig.instance.configState,
+      builder: (context, snapshot) {
+        final state = snapshot.data ?? ConfigState.uninitialized();
+        if (state.status == ConfigStatus.initializing) {
+          return loadingWidget ?? const Center(child: CircularProgressIndicator());
         }
-
+        if (state.status == ConfigStatus.error) {
+          return errorWidget ?? homeWidget;
+        }
         try {
           final isRedirectEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
           final redirectUrl = EasyRemoteConfig.instance.redirectUrl;
-
           if (debugMode) {
             print('🔧 SimpleRedirect: 重定向启用=$isRedirectEnabled, URL=$redirectUrl');
           }
-
           if (isRedirectEnabled && redirectUrl.isNotEmpty) {
             if (debugMode) {
               print('🔧 SimpleRedirect: 执行重定向到 $redirectUrl');
@@ -145,35 +124,15 @@ class _SimpleRedirectWidgetState extends State<_SimpleRedirectWidget> {
             if (debugMode) {
               print('🔧 SimpleRedirect: 重定向未启用或URL为空，显示主页面');
             }
-            return widget.homeWidget;
+            return homeWidget;
           }
         } catch (e) {
           if (debugMode) {
             print('🔧 SimpleRedirect: 获取配置时出错: $e，显示主页面');
           }
-          return widget.errorWidget ?? widget.homeWidget;
+          return errorWidget ?? homeWidget;
         }
-      } else {
-        if (debugMode) {
-          print('🔧 SimpleRedirect: EasyRemoteConfig 未初始化，显示加载页面');
-        }
-        // 如果还未初始化，显示加载状态
-        return widget.loadingWidget ?? const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('正在初始化配置...', style: TextStyle(fontSize: 16)),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (debugMode) {
-        print('🔧 SimpleRedirect: build 方法异常: $e');
-      }
-      return widget.errorWidget ?? widget.homeWidget;
-    }
+      },
+    );
   }
 }
