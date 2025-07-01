@@ -102,13 +102,20 @@ class _SimpleRedirectWidgetState extends State<_SimpleRedirectWidget> {
   void initState() {
     super.initState();
     _listener = () {
-      if (mounted) setState(() {});
+      if (mounted) {
+        print('🔔 [SimpleRedirect] 配置变化监听回调触发，准备 setState');
+        setState(() {});
+      } else {
+        print('⚠️ [SimpleRedirect] 配置变化监听回调触发，但未挂载');
+      }
     };
+    print('🟢 [SimpleRedirect] 注册配置监听');
     EasyRemoteConfig.instance.listen(_listener);
   }
 
   @override
   Widget build(BuildContext context) {
+    print('🟣 [SimpleRedirect] build 方法被调用');
     const debugMode = true; // 临时启用调试
     if (debugMode) {
       print('🔧 SimpleRedirect: build 方法开始执行');

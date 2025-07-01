@@ -114,17 +114,12 @@ import 'package:flutter_remote_config/flutter_remote_config.dart';
 
 > 入口页面必须用 `EasyRedirectWidgets.simpleRedirect` 包裹，不能直接写主页面，否则远程重定向不会生效！
 >
-> **错误用法：**
-> ```dart
-> home: HomePage(), // ❌ 这样不会自动重定向
-> ```
->
-> **正确用法：**
+> **推荐用法（自动跳转，强烈建议）：**
 > ```dart
 > home: EasyRedirectWidgets.simpleRedirect(
 >   homeWidget: HomePage(),
 >   loadingWidget: LoadingScreen(),
-> ), // ✅ 这样才会自动重定向
+> ), // 🚀 自动根据远程配置跳转，无需手动判断
 > ```
 
 ### 步骤1：创建 GitHub Gist 配置
@@ -181,7 +176,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '我的应用',
-      // 🌐 根据配置自动处理重定向
+      // 🚀 自动根据远程配置跳转，无需手动判断
       home: EasyRedirectWidgets.simpleRedirect(
         homeWidget: HomePage(),           // 正常情况显示的页面
         loadingWidget: LoadingScreen(),   // 加载时显示的页面
@@ -1180,3 +1175,68 @@ flutter run
    - 重新连接网络测试自动恢复
 
 **🎉 开始使用吧！**
+
+## 🚩 常见集成误区与最佳实践
+
+### 1. 入口页面必须用自动重定向组件包裹
+> **错误写法：**
+```dart
+home: HomePage(), // ❌ 这样不会自动跳转！
+```
+> **正确写法：**
+```dart
+home: EasyRedirectWidgets.simpleRedirect(
+  homeWidget: HomePage(),
+  loadingWidget: LoadingPage(),
+)
+```
+或
+```dart
+home: ImprovedRedirectWidgets.smartRedirect(
+  homeWidget: HomePage(),
+  loadingWidget: LoadingPage(),
+  enableDebugLogs: true,
+)
+```
+
+### 2. WebViewPage 必须支持 url 热切换
+- 推荐直接用包内自带的 `WebViewPage`，已自动支持 url 变化时 reload。
+- 如自定义 WebView 组件，需实现 didUpdateWidget 逻辑：
+```dart
+@override
+void didUpdateWidget(covariant WebViewPage oldWidget) {
+  super.didUpdateWidget(oldWidget);
+  if (widget.url != oldWidget.url && webViewController != null) {
+    webViewController!.loadUrl(urlRequest: URLRequest(url: WebUri(widget.url)));
+  }
+}
+```
+
+### 3. 配置变更后需重启 App 或手动 refresh
+- Gist 配置变更后，App 必须重启或调用：
+```dart
+await EasyRemoteConfig.instance.refresh();
+```
+否则不会自动拉取新配置。
+
+### 4. Gist 配置字段类型要求
+- `isRedirectEnabled` 必须为布尔值（true/false），`redirectUrl` 必须为字符串。
+- 推荐配置示例：
+```json
+{
+  "version": "1",
+  "isRedirectEnabled": true,
+  "redirectUrl": "https://flutter.dev"
+}
+```
+
+### 5. 常见问题排查清单
+- [ ] 入口页面是否用自动重定向组件包裹？
+- [ ] WebViewPage 是否支持 url 热切换？
+- [ ] Gist 配置字段类型是否正确？
+- [ ] 配置变更后是否重启或 refresh？
+- [ ] 控制台 debugMode 日志是否有"SimpleRedirect: ..."等关键字？
+
+---
+
+如仍有问题，请贴出你的 main.dart 入口、MaterialApp home 配置代码和完整日志，或参考本节内容逐项排查。
