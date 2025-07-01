@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter/cupertino.dart';
 
 /// 内部组件：信息行显示
 class InfoRow extends StatelessWidget {
@@ -56,41 +57,20 @@ class _WebViewPageState extends State<WebViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('重定向页面'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          if (webViewController != null) ...[
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => webViewController!.reload(),
-            ),
-          ],
-        ],
-      ),
+      // 移除AppBar，仅保留WebView和必要的加载/错误提示
       body: Stack(
         children: [
           InAppWebView(
             initialUrlRequest: URLRequest(url: WebUri(widget.url)),
             initialSettings: InAppWebViewSettings(
-              // 启用 JavaScript
               javaScriptEnabled: true,
-              // 启用 DOM 存储
               domStorageEnabled: true,
-              // 设置用户代理（可选）
               userAgent: 'Flutter Remote Config WebView',
-              // 启用缓存
               cacheEnabled: true,
-              // 清除缓存
               clearCache: false,
-              // 启用缩放
               supportZoom: true,
               builtInZoomControls: true,
               displayZoomControls: false,
-              // 媒体播放设置
               mediaPlaybackRequiresUserGesture: false,
             ),
             onWebViewCreated: (controller) {
@@ -110,34 +90,10 @@ class _WebViewPageState extends State<WebViewPage> {
             onReceivedError: (controller, request, error) {
               setState(() {
                 isLoading = false;
-                errorMessage = '加载失败: ${error.description}';
-              });
-            },
-            onReceivedHttpError: (controller, request, errorResponse) {
-              setState(() {
-                isLoading = false;
-                errorMessage = '网络错误: HTTP ${errorResponse.statusCode}';
+                errorMessage = error.description;
               });
             },
           ),
-          
-          // 加载指示器
-          if (isLoading)
-            Container(
-              color: Colors.white.withValues(alpha: 0.8),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('正在加载页面...'),
-                  ],
-                ),
-              ),
-            ),
-          
-          // 错误提示
           if (errorMessage != null && !isLoading)
             Container(
               color: Colors.white,
@@ -156,23 +112,6 @@ class _WebViewPageState extends State<WebViewPage> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 16),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '目标地址:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Text(
-                        widget.url,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
@@ -186,6 +125,13 @@ class _WebViewPageState extends State<WebViewPage> {
                     ),
                   ],
                 ),
+              ),
+            ),
+          if (isLoading && errorMessage == null)
+            Container(
+              color: Colors.white.withOpacity(0.9),
+              child: const Center(
+                child: CupertinoActivityIndicator(radius: 16),
               ),
             ),
         ],

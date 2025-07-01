@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter/cupertino.dart';
 
 class RedirectWebView extends StatefulWidget {
   final String url;
@@ -43,25 +44,6 @@ class _RedirectWebViewState extends State<RedirectWebView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title ?? (_currentTitle.isEmpty ? '重定向页面' : _currentTitle)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _handleBack,
-        ),
-        actions: [
-          if (_webViewController != null && !_hasError && !_hasTimedOut) ...[
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _reload,
-            ),
-          ],
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showInfo,
-          ),
-        ],
-      ),
       body: Stack(
         children: [
           if (!_hasError && !_hasTimedOut)
@@ -114,41 +96,26 @@ class _RedirectWebViewState extends State<RedirectWebView> {
                 }
               },
               initialSettings: InAppWebViewSettings(
-                // 基础设置
                 javaScriptEnabled: true,
                 domStorageEnabled: true,
                 databaseEnabled: true,
-                
-                // 网络和安全
                 mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
                 allowsBackForwardNavigationGestures: true,
                 allowsLinkPreview: true,
-                
-                // 媒体播放
                 mediaPlaybackRequiresUserGesture: false,
                 allowsInlineMediaPlayback: true,
-                
-                // 缓存和性能
                 cacheEnabled: true,
                 clearCache: false,
-                
-                // iOS 特定设置
                 allowsAirPlayForMediaPlayback: true,
                 allowsPictureInPictureMediaPlayback: true,
-                
-                // 用户体验
                 supportZoom: true,
                 builtInZoomControls: false,
                 displayZoomControls: false,
-                
-                // 减少限制，使用兼容参数
                 useShouldOverrideUrlLoading: false,
                 useOnDownloadStart: false,
                 useOnNavigationResponse: false,
               ),
             ),
-          
-          // 错误状态显示
           if (_hasError || _hasTimedOut)
             Container(
               color: Colors.white,
@@ -177,112 +144,26 @@ class _RedirectWebViewState extends State<RedirectWebView> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '目标地址:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      SelectableText(
-                        widget.url,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14,
-                        ),
-                      ),
                       const SizedBox(height: 24),
-                      if (_hasTimedOut) ...[
-                        const Text(
-                          '可能的解决方案：',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '• 检查网络连接\n• 确认目标网址可访问\n• iOS需要配置Info.plist网络权限\n• 尝试使用https协议',
-                          textAlign: TextAlign.left,
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _reload,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('重试'),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: _handleBack,
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text('返回'),
-                          ),
-                        ],
+                      ElevatedButton.icon(
+                        onPressed: _reload,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('重试'),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-          
-          // 加载指示器
+          // 加载指示器（仅动画，无文字、无按钮、无目标地址）
           if (_isLoading && !_hasError && !_hasTimedOut)
             Container(
               color: Colors.white.withOpacity(0.9),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '正在加载重定向页面...',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '目标: ${widget.url}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _handleBack,
-                      child: const Text('取消加载'),
-                    ),
-                  ],
-                ),
+              child: const Center(
+                child: CupertinoActivityIndicator(radius: 16),
               ),
             ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(8),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: Row(
-          children: [
-            Icon(
-              _hasError || _hasTimedOut ? Icons.error : Icons.info_outline,
-              size: 16,
-              color: _hasError || _hasTimedOut ? Colors.red : null,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _hasError || _hasTimedOut 
-                  ? '加载失败: ${widget.url}'
-                  : '重定向目标: ${widget.url}',
-                style: const TextStyle(fontSize: 12),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            TextButton(
-              onPressed: _handleBack,
-              child: const Text('返回'),
-            ),
-          ],
-        ),
       ),
     );
   }

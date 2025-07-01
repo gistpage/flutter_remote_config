@@ -110,6 +110,14 @@ import 'package:flutter_remote_config/flutter_remote_config.dart';
 
 ## 🚀 快速开始（3分钟完成）
 
+**⚠️ 注意事项：**
+
+> **强烈建议**仅在主页面（如 `homeWidget`）或需要重定向的业务入口页面调用自动重定向组件（如 `EasyRedirectWidgets.simpleRedirect`）或 `EasyRemoteConfig.redirectIfNeeded(context)` 方法。
+>
+> **不要在所有页面都全局调用**，否则可能导致页面跳转混乱或用户体验异常。
+>
+> 如需在特定页面才允许重定向，请只在该页面调用相关方法或组件。
+
 ### 步骤1：创建 GitHub Gist 配置
 
 1. 访问 [GitHub Gist](https://gist.github.com)
@@ -998,6 +1006,10 @@ Made with ❤️ for Flutter Community
 如需更细致的WebView配置，请参考 [flutter_inappwebview官方文档](https://pub.dev/packages/flutter_inappwebview#android) 。
 
 ## 🚀 自动重定向用法
+
+**⚠️ 注意事项：**
+
+> 建议仅在主页面或需要重定向的页面调用自动重定向方法或组件，避免在所有页面重复调用，防止页面跳转异常。
 
 ```dart
 // 初始化成功后自动检测并跳转
