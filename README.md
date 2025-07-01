@@ -1240,3 +1240,30 @@ await EasyRemoteConfig.instance.refresh();
 ---
 
 如仍有问题，请贴出你的 main.dart 入口、MaterialApp home 配置代码和完整日志，或参考本节内容逐项排查。
+
+## ⚡ 开发体验优化（热重载兼容）
+
+> **开发提示：**
+>
+> - 生产环境和冷启动、前后台切换时，页面跳转和配置流响应100%一致，无需任何特殊处理。
+> - 但在开发阶段使用 Flutter 的"热重载"功能时，部分流（如 StreamBuilder）不会自动重建订阅，可能导致 UI 不响应配置变化。
+> - 这不是业务代码问题，而是 Flutter 热重载的机制限制，生产环境不会出现此问题。
+
+### 🧑‍💻 热重载兼容用法（仅开发阶段可选）
+
+如果你希望在开发阶段热重载时也能立即看到配置变化效果，可以临时用如下写法：
+
+```dart
+home: HotReloadFriendlyRedirect(
+  homeWidget: MyHomePage(title: 'Flutter Demo Home Page'),
+  loadingWidget: LoadingPage(),
+)
+```
+
+- `HotReloadFriendlyRedirect` 会在热重载时自动重建 StreamBuilder，开发体验和冷启动一致。
+- **生产环境无需使用**，只需用 `EasyRedirectWidgets.simpleRedirect` 即可。
+
+#### ⚠️ 注意
+
+- 生产环境和冷启动、前后台切换体验完全一致，无需任何特殊兼容代码。
+- 热重载兼容组件仅为开发体验优化，不影响最终上线包。

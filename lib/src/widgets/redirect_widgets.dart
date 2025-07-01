@@ -135,3 +135,46 @@ class _SimpleRedirectWidget extends StatelessWidget {
     );
   }
 }
+
+/// 🧑‍💻 开发专用：兼容热重载的重定向组件
+/// 用法：开发阶段用 HotReloadFriendlyRedirect 包裹 simpleRedirect，热重载时自动重建 StreamBuilder
+class HotReloadFriendlyRedirect extends StatefulWidget {
+  final Widget homeWidget;
+  final Widget? loadingWidget;
+  final Widget? errorWidget;
+
+  const HotReloadFriendlyRedirect({
+    required this.homeWidget,
+    this.loadingWidget,
+    this.errorWidget,
+    super.key,
+  });
+
+  @override
+  State<HotReloadFriendlyRedirect> createState() => _HotReloadFriendlyRedirectState();
+}
+
+class _HotReloadFriendlyRedirectState extends State<HotReloadFriendlyRedirect> {
+  int _reloadKey = 0;
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    // 热重载时强制重建 StreamBuilder
+    setState(() {
+      _reloadKey++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: ValueKey(_reloadKey),
+      child: EasyRedirectWidgets.simpleRedirect(
+        homeWidget: widget.homeWidget,
+        loadingWidget: widget.loadingWidget,
+        errorWidget: widget.errorWidget,
+      ),
+    );
+  }
+}
