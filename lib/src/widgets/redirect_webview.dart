@@ -44,8 +44,9 @@ class _RedirectWebViewState extends State<RedirectWebView> {
     // 监听配置变化，isRedirectEnabled 变为 false 时自动关闭页面
     _configSub = EasyRemoteConfig.instance.listen(() {
       if (!EasyRemoteConfig.instance.isRedirectEnabled && mounted) {
-        // 业务说明：当后台关闭重定向时，自动关闭 H5 页面，回到原生界面
-        Navigator.of(context).maybePop();
+        // 业务说明：当后台关闭重定向时，通过外层 Widget 的 declarative return 切换页面
+        // 移除 maybePop() 调用，完全依赖外层的 StreamBuilder 监听和 return 切换
+        print('🔄 检测到重定向已禁用，等待外层 Widget 切换页面');
       }
     });
   }
