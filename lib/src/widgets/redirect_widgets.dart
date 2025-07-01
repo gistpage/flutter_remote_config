@@ -106,8 +106,8 @@ class _SimpleRedirectWidget extends StatelessWidget {
         final state = snapshot.data ?? ConfigState.uninitialized();
         final config = state.config as BasicRemoteConfig?;
         final version = config?.getValue('version', 'null');
-        final isRedirectEnabled = config?.getValue('isRedirectEnabled', null);
-        final redirectUrl = config?.getValue('redirectUrl', 'null');
+        final isRedirectEnabled = config?.getValue('isRedirectEnabled', false) ?? false;
+        final redirectUrl = config?.getValue('redirectUrl', '') ?? '';
         print('🟣 [SimpleRedirect] StreamBuilder触发: '
               'status=${state.status}, version=$version, '
               'isRedirectEnabled=$isRedirectEnabled, redirectUrl=$redirectUrl');
