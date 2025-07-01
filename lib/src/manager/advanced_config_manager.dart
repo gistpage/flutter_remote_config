@@ -285,6 +285,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     } catch (e) {
       if (_options.enableDebugLogs) {
         print('❌ 加载初始配置失败: $e');
+        print('⚠️ AdvancedConfigManager: 启用本地defaults作为兜底配置');
       }
       // 使用默认配置
       _currentConfig = _defaultConfigFactory();
