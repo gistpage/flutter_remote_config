@@ -93,11 +93,10 @@ class EasyRemoteConfig {
       if (debugMode) {
         print('❌ EasyRemoteConfig V2 初始化失败: $e');
       }
-      
       // 创建默认配置作为备用
       final defaultConfig = BasicRemoteConfig(data: defaults);
-      instance._stateManager.setError(e.toString(), defaultConfig);
-      
+      // 修复：直接setLoaded，保证UI能用defaults兜底
+      instance._stateManager.setLoaded(defaultConfig, '使用默认配置');
       // 仍然标记为已初始化，允许使用默认配置
       instance._initialized = true;
     }
