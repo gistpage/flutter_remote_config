@@ -318,41 +318,52 @@ class RemoteConfigService<T extends RemoteConfig> {
   String? _extractConfigContent(Map<String, dynamic> files) {
     // 优先查找指定的配置文件
     if (files.containsKey(options.configFileName)) {
-      return files[options.configFileName]['content'] as String?;
+      final content = files[options.configFileName]['content'] as String?;
+      print('[RemoteConfig] 命中指定文件: ${options.configFileName}, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+      return content;
     }
     // 如果指定的文件名不是默认的 config.json，也尝试查找 config.json
     if (options.configFileName != 'config.json' && files.containsKey('config.json')) {
-      return files['config.json']['content'] as String?;
+      final content = files['config.json']['content'] as String?;
+      print('[RemoteConfig] 命中 config.json, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+      return content;
     }
     // 查找其他可能的配置文件名
     final configFileNames = ['app_config.json', 'settings.json', 'configuration.json'];
     for (final fileName in configFileNames) {
       if (files.containsKey(fileName)) {
-        return files[fileName]['content'] as String?;
+        final content = files[fileName]['content'] as String?;
+        print('[RemoteConfig] 命中 $fileName, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+        return content;
       }
     }
     // 如果没有找到特定的配置文件，使用第一个 .json 文件
     for (final entry in files.entries) {
       final fileName = entry.key;
       if (fileName.endsWith('.json')) {
-        return entry.value['content'] as String?;
+        final content = entry.value['content'] as String?;
+        print('[RemoteConfig] 命中 .json 文件: $fileName, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+        return content;
       }
     }
     // 新增：自动识别内容为 JSON 的文件（如 gistfile1.txt）
     for (final entry in files.entries) {
+      final fileName = entry.key;
       final content = entry.value['content'] as String?;
+      print('[RemoteConfig] 检查文件: $fileName, 内容前100字符: \\n${content?.substring(0, content != null && content.length > 100 ? 100 : (content?.length ?? 0))}');
       if (content != null) {
         try {
           final jsonData = json.decode(content);
           if (jsonData is Map<String, dynamic> && jsonData.containsKey('version')) {
-            // 只要能解析为Map且有version字段，就认为是配置
+            print('[RemoteConfig] 自动识别到 JSON 配置文件: $fileName, 内容前100字符: \\n${content.substring(0, content.length > 100 ? 100 : content.length)}');
             return content;
           }
-        } catch (_) {
+        } catch (e) {
           // 不是合法JSON，跳过
         }
       }
     }
+    print('[RemoteConfig] 未找到任何可用的配置文件。');
     return null;
   }
 
