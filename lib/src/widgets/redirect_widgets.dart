@@ -80,7 +80,7 @@ class EasyRedirectWidgets {
 /// 2. 直接在 build 方法中进行状态判断
 /// 3. 避免在 build 中创建 Future 的反模式
 /// 4. 提供详细调试日志
-class _SimpleRedirectWidget extends StatelessWidget {
+class _SimpleRedirectWidget extends StatefulWidget {
   final Widget homeWidget;
   final Widget? loadingWidget;
   final Widget? errorWidget;
@@ -92,9 +92,24 @@ class _SimpleRedirectWidget extends StatelessWidget {
   });
 
   @override
+  State<_SimpleRedirectWidget> createState() => _SimpleRedirectWidgetState();
+}
+
+class _SimpleRedirectWidgetState extends State<_SimpleRedirectWidget> {
+  late final VoidCallback _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    _listener = () {
+      if (mounted) setState(() {});
+    };
+    EasyRemoteConfig.instance.listen(_listener);
+  }
+
+  @override
   Widget build(BuildContext context) {
     const debugMode = true; // 临时启用调试
-    
     if (debugMode) {
       print('🔧 SimpleRedirect: build 方法开始执行');
     }
@@ -123,20 +138,20 @@ class _SimpleRedirectWidget extends StatelessWidget {
             if (debugMode) {
               print('🔧 SimpleRedirect: 重定向未启用或URL为空，显示主页面');
             }
-            return homeWidget;
+            return widget.homeWidget;
           }
         } catch (e) {
           if (debugMode) {
             print('🔧 SimpleRedirect: 获取配置时出错: $e，显示主页面');
           }
-          return errorWidget ?? homeWidget;
+          return widget.errorWidget ?? widget.homeWidget;
         }
       } else {
         if (debugMode) {
           print('🔧 SimpleRedirect: EasyRemoteConfig 未初始化，显示加载页面');
         }
         // 如果还未初始化，显示加载状态
-        return loadingWidget ?? const Center(
+        return widget.loadingWidget ?? const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -151,7 +166,7 @@ class _SimpleRedirectWidget extends StatelessWidget {
       if (debugMode) {
         print('🔧 SimpleRedirect: build 方法异常: $e');
       }
-      return errorWidget ?? homeWidget;
+      return widget.errorWidget ?? widget.homeWidget;
     }
   }
 }

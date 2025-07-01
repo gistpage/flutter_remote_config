@@ -319,6 +319,18 @@ class MyApp extends StatelessWidget {
 }
 ```
 
+> 🆕 **现在 simpleRedirect 组件已内置自动监听配置变化，无需外部包裹 StatefulWidget 或手动监听，所有项目直接用即可自动热切换。**
+
+### 4. 配置热切换最佳实践
+
+- 只需用 `EasyRedirectWidgets.simpleRedirect` 作为入口页面，无需手动包裹 StatefulWidget 或监听配置变化。
+- 页面会随远程配置自动切换，无需关心实现细节。
+
+### 常见问题
+
+#### Q: 配置变化后页面不会自动切换怎么办？
+**A:** 只需升级到最新版，确保用的是 `EasyRedirectWidgets.simpleRedirect`，无需任何额外包裹或监听，页面会自动热切换。
+
 ## 📚 API 参考
 
 ### 核心方法
