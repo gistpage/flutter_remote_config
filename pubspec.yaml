@@ -1,6 +1,6 @@
 name: flutter_remote_config
 description: "A powerful Flutter package for remote configuration management using GitHub Gist with intelligent caching, ETag optimization, version control, and lifecycle awareness."
-version: 0.0.2
+version: 0.0.4
 homepage: https://github.com/gistpage/flutter_remote_config
 
 environment:

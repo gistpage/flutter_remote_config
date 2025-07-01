@@ -52,6 +52,14 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   /// 检查是否已初始化
   static bool get isManagerInitialized => _instance != null;
 
+  /// 重置实例（仅用于测试）
+  static void resetInstance() {
+    if (_instance != null) {
+      (_instance as AdvancedConfigManager)._dispose();
+      _instance = null;
+    }
+  }
+
   final RemoteConfigService<T> _configService;
   final T Function() _defaultConfigFactory;
   final RemoteConfigOptions _options;

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../manager/advanced_config_manager.dart';
 import '../models/remote_config.dart';
 import '../config_builder.dart';
+import '../easy_remote_config.dart';
 import 'internal_widgets.dart';
+import 'dart:async';
 
 /// 🎨 重定向组件集合
 /// 
@@ -22,31 +24,10 @@ class EasyRedirectWidgets {
     Widget? loadingWidget,
     Widget? errorWidget,
   }) {
-    // 检查 AdvancedConfigManager 是否已初始化
-    if (!AdvancedConfigManager.isManagerInitialized) {
-      // 未初始化时返回 homeWidget（适用于测试环境等场景）
-      return homeWidget;
-    }
-    return StreamBuilder<RemoteConfig>(
-      stream: AdvancedConfigManager.instance.configStream,
-      builder: (context, snapshot) {
-        // 错误处理
-        if (snapshot.hasError) {
-          return errorWidget ?? homeWidget;
-        }
-        // 加载中
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return loadingWidget ?? const Center(child: CircularProgressIndicator());
-        }
-        final config = snapshot.data as BasicRemoteConfig?;
-        final isRedirectEnabled = config?.getValue('isRedirectEnabled', false) ?? false;
-        final redirectUrl = config?.getValue('redirectUrl', '') ?? '';
-        // 检查是否需要重定向
-        if (isRedirectEnabled && redirectUrl.isNotEmpty) {
-          return WebViewPage(url: redirectUrl);
-        }
-        return homeWidget;
-      },
+    return _SimpleRedirectWidget(
+      homeWidget: homeWidget,
+      loadingWidget: loadingWidget,
+      errorWidget: errorWidget,
     );
   }
 
@@ -89,5 +70,129 @@ class EasyRedirectWidgets {
         );
       },
     );
+  }
+}
+
+/// 🔧 私有的简化重定向Widget实现
+/// 
+/// 解决原版本的无限等待问题：
+/// 1. 使用 FutureBuilder 替代 StreamBuilder
+/// 2. 添加3秒超时保护
+/// 3. 直接检查配置状态
+/// 4. 提供调试日志
+class _SimpleRedirectWidget extends StatelessWidget {
+  final Widget homeWidget;
+  final Widget? loadingWidget;
+  final Widget? errorWidget;
+
+  const _SimpleRedirectWidget({
+    required this.homeWidget,
+    this.loadingWidget,
+    this.errorWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Widget>(
+      future: _resolveWidget(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return snapshot.data!;
+        }
+        
+        // 显示加载状态
+        return loadingWidget ?? const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('正在加载配置...', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Widget> _resolveWidget() async {
+    const debugMode = true; // 临时启用调试
+    
+    try {
+      if (debugMode) {
+        print('🔧 SimpleRedirect: 开始解析widget');
+      }
+
+      // 首先尝试使用 EasyRemoteConfig（它包含默认配置兜底逻辑）
+      try {
+        if (EasyRemoteConfig.isInitialized) {
+          final isRedirectEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
+          final redirectUrl = EasyRemoteConfig.instance.redirectUrl;
+
+          if (debugMode) {
+            print('🔧 SimpleRedirect: 使用EasyRemoteConfig - 重定向启用=$isRedirectEnabled, URL=$redirectUrl');
+          }
+
+          if (isRedirectEnabled && redirectUrl.isNotEmpty) {
+            return WebViewPage(url: redirectUrl);
+          }
+          
+          if (debugMode) {
+            print('🔧 SimpleRedirect: EasyRemoteConfig显示重定向未启用，返回主页面');
+          }
+          return homeWidget;
+        }
+      } catch (e) {
+        if (debugMode) {
+          print('🔧 SimpleRedirect: EasyRemoteConfig获取配置失败: $e，尝试AdvancedConfigManager');
+        }
+      }
+
+      // 备用方案：检查 AdvancedConfigManager 是否已初始化
+      if (!AdvancedConfigManager.isManagerInitialized) {
+        if (debugMode) {
+          print('🔧 SimpleRedirect: AdvancedConfigManager也未初始化，返回主页面');
+        }
+        return homeWidget;
+      }
+
+      // 最后的备用方案：直接从 AdvancedConfigManager 获取配置
+      final configFuture = AdvancedConfigManager.instance.getConfig();
+      final config = await configFuture.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          if (debugMode) {
+            print('🔧 SimpleRedirect: 获取配置超时，返回主页面');
+          }
+          throw TimeoutException('获取配置超时', const Duration(seconds: 3));
+        },
+      );
+
+      if (debugMode) {
+        print('🔧 SimpleRedirect: 从AdvancedConfigManager成功获取配置');
+      }
+
+      // 处理配置
+      if (config is BasicRemoteConfig) {
+        final isRedirectEnabled = config.getValue('isRedirectEnabled', false);
+        final redirectUrl = config.getValue('redirectUrl', '');
+
+        if (debugMode) {
+          print('🔧 SimpleRedirect: AdvancedConfigManager - 重定向启用=$isRedirectEnabled, URL=$redirectUrl');
+        }
+
+        if (isRedirectEnabled && redirectUrl.isNotEmpty) {
+          return WebViewPage(url: redirectUrl);
+        }
+      }
+
+      return homeWidget;
+
+    } catch (e) {
+      if (debugMode) {
+        print('🔧 SimpleRedirect: 解析失败: $e, 返回主页面');
+      }
+      return errorWidget ?? homeWidget;
+    }
   }
 }

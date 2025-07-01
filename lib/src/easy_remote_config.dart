@@ -227,6 +227,16 @@ class EasyRemoteConfig {
     return _initialized && _currentConfig != null;
   }
 
+  /// 🎯 静态方法：检查是否已初始化
+  static bool get isInitialized {
+    return _instance?._initialized ?? false;
+  }
+
+  /// 🎯 重置实例（仅用于测试）
+  static void resetInstance() {
+    _instance = null;
+  }
+
   /// 🎯 获取当前配置状态
   ConfigState get configState {
     return _stateManager.currentState;
