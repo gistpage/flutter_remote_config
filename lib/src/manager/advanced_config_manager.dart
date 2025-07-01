@@ -182,7 +182,27 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
         print('❌ AdvancedConfigManager获取配置失败: $e');
       }
       // 返回当前配置或默认配置
-      return _currentConfig ?? _defaultConfigFactory();
+      final fallbackConfig = _currentConfig ?? _defaultConfigFactory();
+      
+      if (_options.enableDebugLogs) {
+        if (_currentConfig != null) {
+          print('🔄 使用当前缓存的配置作为兜底');
+          print('📄 当前配置内容: ${_currentConfig?.toJson()}');
+        } else {
+          final defaultConfig = _defaultConfigFactory();
+          print('🏠 使用默认配置作为兜底');
+          print('📄 默认配置 JSON: ${defaultConfig.toJson()}');
+          if (defaultConfig is BasicRemoteConfig) {
+            print('🔧 默认配置详细信息:');
+            final configData = defaultConfig.toJson();
+            configData.forEach((key, value) {
+              print('   ├─ $key: $value (${value.runtimeType})');
+            });
+          }
+        }
+      }
+      
+      return fallbackConfig;
     }
   }
 
@@ -297,6 +317,30 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
       }
       // 使用默认配置
       _currentConfig = _defaultConfigFactory();
+      
+      if (_options.enableDebugLogs) {
+        print('✅ AdvancedConfigManager: 成功创建默认配置');
+        print('📄 AdvancedConfigManager 默认配置 JSON: ${_currentConfig?.toJson()}');
+        if (_currentConfig is BasicRemoteConfig) {
+          print('🔧 AdvancedConfigManager 默认配置详细信息:');
+          final configData = (_currentConfig as BasicRemoteConfig).toJson();
+          configData.forEach((key, value) {
+            print('   ├─ $key: $value (${value.runtimeType})');
+          });
+          
+          // 特别显示重定向相关配置
+          final basicConfig = _currentConfig as BasicRemoteConfig;
+          final isRedirectEnabled = basicConfig.getValue('isRedirectEnabled', null);
+          final redirectUrl = basicConfig.getValue('redirectUrl', null);
+          final version = basicConfig.getValue('version', null);
+          
+          print('🌐 AdvancedConfigManager 重定向配置检查:');
+          print('   ├─ isRedirectEnabled: $isRedirectEnabled');
+          print('   ├─ redirectUrl: $redirectUrl');
+          print('   └─ version: $version');
+        }
+      }
+      
       _notifyConfigChanged(_currentConfig!);
     }
   }

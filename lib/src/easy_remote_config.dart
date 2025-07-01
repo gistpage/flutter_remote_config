@@ -94,15 +94,47 @@ class EasyRemoteConfig {
       if (debugMode) {
         print('❌ EasyRemoteConfig V2 初始化失败: $e');
         print('⚠️ EasyRemoteConfig: 启用本地defaults作为兜底配置');
+        print('📋 默认配置内容: $defaults');
       }
+      
       // 创建默认配置作为备用
       final defaultConfig = BasicRemoteConfig(data: defaults);
+      
+      if (debugMode) {
+        print('✅ 成功创建默认配置对象');
+        print('📄 默认配置 JSON: ${defaultConfig.toJson()}');
+        print('🔧 默认配置详细信息:');
+        defaults.forEach((key, value) {
+          print('   ├─ $key: $value (${value.runtimeType})');
+        });
+        
+        // 特别显示重定向相关配置
+        final isRedirectEnabled = defaultConfig.getValue('isRedirectEnabled', null);
+        final redirectUrl = defaultConfig.getValue('redirectUrl', null);
+        final version = defaultConfig.getValue('version', null);
+        
+        print('🌐 重定向配置检查:');
+        print('   ├─ isRedirectEnabled: $isRedirectEnabled');
+        print('   ├─ redirectUrl: $redirectUrl');
+        print('   └─ version: $version');
+        
+        if (isRedirectEnabled == true && redirectUrl != null && redirectUrl.toString().isNotEmpty) {
+          print('🔀 将执行重定向到: $redirectUrl');
+        } else {
+          print('🏠 将显示主页面（重定向未启用或URL为空）');
+        }
+      }
+      
       // 修复：直接setLoaded，保证UI能用defaults兜底
       instance._stateManager.setLoaded(defaultConfig, '使用默认配置');
       // 新增：手动广播配置变更事件，确保UI能收到
       ConfigEventManager.instance.emit(ConfigChangedEvent(defaultConfig));
       // 仍然标记为已初始化，允许使用默认配置
       instance._initialized = true;
+      
+      if (debugMode) {
+        print('✅ EasyRemoteConfig V2 使用默认配置初始化完成');
+      }
     }
   }
 
