@@ -55,19 +55,6 @@ class _WebViewPageState extends State<WebViewPage> {
   InAppWebViewController? webViewController;
   bool isLoading = true;
   String? errorMessage;
-  late final StreamSubscription<void> _configSub; // 监听配置变化
-
-  @override
-  void initState() {
-    super.initState();
-    // 监听配置变化，isRedirectEnabled 变为 false 时自动关闭页面
-    _configSub = EasyRemoteConfig.instance.listen(() {
-      if (!EasyRemoteConfig.instance.isRedirectEnabled && mounted) {
-        // 业务说明：当后台关闭重定向时，自动关闭 H5 页面，回到原生界面
-        Navigator.of(context).maybePop();
-      }
-    });
-  }
 
   @override
   void didUpdateWidget(covariant WebViewPage oldWidget) {
@@ -173,7 +160,6 @@ class _WebViewPageState extends State<WebViewPage> {
 
   @override
   void dispose() {
-    _configSub.cancel();
     super.dispose();
   }
 }
