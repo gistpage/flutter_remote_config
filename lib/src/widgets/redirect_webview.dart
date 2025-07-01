@@ -46,8 +46,8 @@ class _RedirectWebViewState extends State<RedirectWebView> {
     return Scaffold(
       body: Stack(
         children: [
-          if (!_hasError && !_hasTimedOut)
-            InAppWebView(
+          SafeArea(
+            child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri(widget.url)),
               onWebViewCreated: (controller) => _webViewController = controller,
               onLoadStart: (controller, url) {
@@ -116,6 +116,7 @@ class _RedirectWebViewState extends State<RedirectWebView> {
                 useOnNavigationResponse: false,
               ),
             ),
+          ),
           if (_hasError || _hasTimedOut)
             Container(
               color: Colors.white,

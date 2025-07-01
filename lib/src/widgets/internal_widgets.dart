@@ -60,39 +60,41 @@ class _WebViewPageState extends State<WebViewPage> {
       // 移除AppBar，仅保留WebView和必要的加载/错误提示
       body: Stack(
         children: [
-          InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              domStorageEnabled: true,
-              userAgent: 'Flutter Remote Config WebView',
-              cacheEnabled: true,
-              clearCache: false,
-              supportZoom: true,
-              builtInZoomControls: true,
-              displayZoomControls: false,
-              mediaPlaybackRequiresUserGesture: false,
+          SafeArea(
+            child: InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+              initialSettings: InAppWebViewSettings(
+                javaScriptEnabled: true,
+                domStorageEnabled: true,
+                userAgent: 'Flutter Remote Config WebView',
+                cacheEnabled: true,
+                clearCache: false,
+                supportZoom: true,
+                builtInZoomControls: true,
+                displayZoomControls: false,
+                mediaPlaybackRequiresUserGesture: false,
+              ),
+              onWebViewCreated: (controller) {
+                webViewController = controller;
+              },
+              onLoadStart: (controller, url) {
+                setState(() {
+                  isLoading = true;
+                  errorMessage = null;
+                });
+              },
+              onLoadStop: (controller, url) {
+                setState(() {
+                  isLoading = false;
+                });
+              },
+              onReceivedError: (controller, request, error) {
+                setState(() {
+                  isLoading = false;
+                  errorMessage = error.description;
+                });
+              },
             ),
-            onWebViewCreated: (controller) {
-              webViewController = controller;
-            },
-            onLoadStart: (controller, url) {
-              setState(() {
-                isLoading = true;
-                errorMessage = null;
-              });
-            },
-            onLoadStop: (controller, url) {
-              setState(() {
-                isLoading = false;
-              });
-            },
-            onReceivedError: (controller, request, error) {
-              setState(() {
-                isLoading = false;
-                errorMessage = error.description;
-              });
-            },
           ),
           if (errorMessage != null && !isLoading)
             Container(
