@@ -6,6 +6,7 @@ import 'models/remote_config.dart';
 import 'state_management/config_state_manager.dart';
 import 'package:flutter/material.dart';
 import 'widgets/redirect_webview.dart';
+import 'core/config_event_manager.dart';
 
 /// 🚀 简化API - 90%场景一行代码搞定
 /// 
@@ -98,6 +99,8 @@ class EasyRemoteConfig {
       final defaultConfig = BasicRemoteConfig(data: defaults);
       // 修复：直接setLoaded，保证UI能用defaults兜底
       instance._stateManager.setLoaded(defaultConfig, '使用默认配置');
+      // 新增：手动广播配置变更事件，确保UI能收到
+      ConfigEventManager.instance.emit(ConfigChangedEvent(defaultConfig));
       // 仍然标记为已初始化，允许使用默认配置
       instance._initialized = true;
     }

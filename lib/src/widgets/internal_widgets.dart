@@ -64,41 +64,41 @@ class _WebViewPageState extends State<WebViewPage> {
             color: Colors.white,
             child: SafeArea(
               child: InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-                initialSettings: InAppWebViewSettings(
-                  javaScriptEnabled: true,
-                  domStorageEnabled: true,
-                  userAgent: 'Flutter Remote Config WebView',
-                  cacheEnabled: true,
-                  clearCache: false,
-                  supportZoom: true,
-                  builtInZoomControls: true,
-                  displayZoomControls: false,
-                  mediaPlaybackRequiresUserGesture: false,
-                ),
-                onWebViewCreated: (controller) {
-                  webViewController = controller;
-                },
-                onLoadStart: (controller, url) {
-                  setState(() {
-                    isLoading = true;
-                    errorMessage = null;
-                  });
-                },
-                onLoadStop: (controller, url) {
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-                onReceivedError: (controller, request, error) {
-                  setState(() {
-                    isLoading = false;
+            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+              domStorageEnabled: true,
+              userAgent: 'Flutter Remote Config WebView',
+              cacheEnabled: true,
+              clearCache: false,
+              supportZoom: true,
+              builtInZoomControls: true,
+              displayZoomControls: false,
+              mediaPlaybackRequiresUserGesture: false,
+            ),
+            onWebViewCreated: (controller) {
+              webViewController = controller;
+            },
+            onLoadStart: (controller, url) {
+              setState(() {
+                isLoading = true;
+                errorMessage = null;
+              });
+            },
+            onLoadStop: (controller, url) {
+              setState(() {
+                isLoading = false;
+              });
+            },
+            onReceivedError: (controller, request, error) {
+              setState(() {
+                isLoading = false;
                     errorMessage = error.description;
-                  });
-                },
+              });
+            },
+          ),
               ),
             ),
-          ),
           if (errorMessage != null && !isLoading)
             Container(
               color: Colors.white,
