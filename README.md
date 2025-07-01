@@ -56,7 +56,7 @@ dependencies:
   flutter_remote_config:
     git:
       url: https://github.com/gistpage/flutter_remote_config.git
-      ref: main
+      ref: main  # 推荐始终指向 main 分支，获取最新修复和特性
 ```
 
 ### 2. 安装包
@@ -966,19 +966,19 @@ flutter run
 ### 版本管理策略
 
 ```yaml
-# 使用特定标签（推荐生产环境）
-dependencies:
-  flutter_remote_config:
-    git:
-      url: https://github.com/gistpage/flutter_remote_config.git
-      ref: v1.0.0
-
-# 使用最新版本（开发环境）
+# 推荐：始终依赖 main 分支，获取最新修复和特性
 dependencies:
   flutter_remote_config:
     git:
       url: https://github.com/gistpage/flutter_remote_config.git
       ref: main
+
+# （不再推荐使用 tag 方式，如 v1.0.0）
+# dependencies:
+#   flutter_remote_config:
+#     git:
+#       url: https://github.com/gistpage/flutter_remote_config.git
+#       ref: v1.0.0
 ```
 
 ## 📄 许可证
