@@ -103,33 +103,31 @@ class _SimpleRedirectWidget extends StatelessWidget {
       initialData: EasyRemoteConfig.instance.configState,
       builder: (context, snapshot) {
         final state = snapshot.data ?? ConfigState.uninitialized();
+        final config = state.config as BasicRemoteConfig?;
+        final version = config?.getValue('version', 'null');
+        final isRedirectEnabled = config?.getValue('isRedirectEnabled', null);
+        final redirectUrl = config?.getValue('redirectUrl', 'null');
+        print('🟣 [SimpleRedirect] StreamBuilder触发: '
+              'status=${state.status}, version=$version, '
+              'isRedirectEnabled=$isRedirectEnabled, redirectUrl=$redirectUrl');
         if (state.status == ConfigStatus.initializing) {
+          print('🟡 [SimpleRedirect] 配置正在初始化，显示加载页');
           return loadingWidget ?? const Center(child: CircularProgressIndicator());
         }
         if (state.status == ConfigStatus.error) {
+          print('🔴 [SimpleRedirect] 配置加载失败，显示主页面或错误页');
           return errorWidget ?? homeWidget;
         }
         try {
-          final isRedirectEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
-          final redirectUrl = EasyRemoteConfig.instance.redirectUrl;
-          if (debugMode) {
-            print('🔧 SimpleRedirect: 重定向启用=$isRedirectEnabled, URL=$redirectUrl');
-          }
-          if (isRedirectEnabled && redirectUrl.isNotEmpty) {
-            if (debugMode) {
-              print('🔧 SimpleRedirect: 执行重定向到 $redirectUrl');
-            }
+          if (isRedirectEnabled == true && (redirectUrl is String) && redirectUrl.isNotEmpty) {
+            print('🟢 [SimpleRedirect] 满足重定向条件，跳转到: $redirectUrl');
             return WebViewPage(url: redirectUrl);
           } else {
-            if (debugMode) {
-              print('🔧 SimpleRedirect: 重定向未启用或URL为空，显示主页面');
-            }
+            print('🔵 [SimpleRedirect] 不满足重定向条件，显示主页面');
             return homeWidget;
           }
-        } catch (e) {
-          if (debugMode) {
-            print('🔧 SimpleRedirect: 获取配置时出错: $e，显示主页面');
-          }
+        } catch (e, stack) {
+          print('🔴 [SimpleRedirect] 获取配置或页面构建异常: $e\n$stack');
           return errorWidget ?? homeWidget;
         }
       },
