@@ -109,9 +109,9 @@ class EasyRemoteConfig {
         });
         
         // 特别显示重定向相关配置
-        final isRedirectEnabled = defaultConfig.getValue('isRedirectEnabled', null);
-        final redirectUrl = defaultConfig.getValue('redirectUrl', null);
-        final version = defaultConfig.getValue('version', null);
+        final isRedirectEnabled = defaultConfig.getValue('isRedirectEnabled', false);
+        final redirectUrl = defaultConfig.getValue('redirectUrl', '');
+        final version = defaultConfig.getValue('version', '1');
         
         print('🌐 重定向配置检查:');
         print('   ├─ isRedirectEnabled: $isRedirectEnabled');

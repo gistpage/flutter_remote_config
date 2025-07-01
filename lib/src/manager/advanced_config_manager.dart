@@ -330,9 +330,9 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
           
           // 特别显示重定向相关配置
           final basicConfig = _currentConfig as BasicRemoteConfig;
-          final isRedirectEnabled = basicConfig.getValue('isRedirectEnabled', null);
-          final redirectUrl = basicConfig.getValue('redirectUrl', null);
-          final version = basicConfig.getValue('version', null);
+          final isRedirectEnabled = basicConfig.getValue('isRedirectEnabled', false);
+          final redirectUrl = basicConfig.getValue('redirectUrl', '');
+          final version = basicConfig.getValue('version', '1');
           
           print('🌐 AdvancedConfigManager 重定向配置检查:');
           print('   ├─ isRedirectEnabled: $isRedirectEnabled');
