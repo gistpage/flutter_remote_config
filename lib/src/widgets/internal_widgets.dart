@@ -55,6 +55,17 @@ class _WebViewPageState extends State<WebViewPage> {
   String? errorMessage;
 
   @override
+  void didUpdateWidget(covariant WebViewPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 如果url变化，自动reload
+    if (widget.url != oldWidget.url && webViewController != null) {
+      webViewController!.loadUrl(
+        urlRequest: URLRequest(url: WebUri(widget.url)),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       // 移除AppBar，仅保留WebView和必要的加载/错误提示

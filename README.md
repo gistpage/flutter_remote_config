@@ -108,7 +108,7 @@ flutter pub get
 import 'package:flutter_remote_config/flutter_remote_config.dart';
 ```
 
-## �� 快速开始（3分钟完成）
+## 🎯 快速开始（3分钟完成）
 
 **⚠️ 集成关键提醒：**
 
@@ -276,6 +276,9 @@ dependencies:
 4. 🔄 提供刷新和重试功能
 5. ⏱️ 30秒超时保护避免卡死
 6. 🔙 随时可以返回应用
+7. 🆕 **配置变更自动跳转**：只要配置发生变化（如App切回前台、定时检查、手动刷新等），如果redirectUrl有变化，WebView会自动跳转到新地址，无需重启App。
+
+> ⚡ 推荐入口使用 `ImprovedRedirectWidgets.smartRedirect` 或 `EasyRedirectWidgets.simpleRedirect`，它们会自动监听配置变化并重建WebViewPage，配合新版WebViewPage可实现真正的热切换跳转。
 
 ## 🌐 常用方法
 
@@ -848,7 +851,7 @@ await EasyRemoteConfig.init(
 - 检查 Gist 是否存在
 
 #### 6. isRedirectEnabled 为 true 但没有跳转？
-**问题**: 入口页面未用自动重定向组件包裹
+**问题**: 入口页面未用自动重定向组件包裹，或WebView未自动跳转
 **解决**: 
 - 请确保你的 `MaterialApp` 的 `home:` 写法如下：
   ```dart
@@ -858,6 +861,7 @@ await EasyRemoteConfig.init(
   )
   ```
 - 不能直接写 `home: HomePage()`，否则不会自动跳转！
+- **如果切回App或配置变更后WebView未跳转，请升级到最新版，确保WebViewPage已支持url变更自动跳转。**
 
 ### 调试步骤
 
