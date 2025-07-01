@@ -108,17 +108,24 @@ flutter pub get
 import 'package:flutter_remote_config/flutter_remote_config.dart';
 ```
 
-## 🚀 快速开始（3分钟完成）
+## �� 快速开始（3分钟完成）
 
-**⚠️ 注意事项：**
+**⚠️ 集成关键提醒：**
 
-> **本包仅支持自动重定向。**
-> 
-> **强烈建议**仅在主页面（如 `homeWidget`）或需要重定向的业务入口页面调用自动重定向组件（如 `EasyRedirectWidgets.simpleRedirect`）。
-> 
-> **不要在所有页面都全局调用**，否则可能导致页面跳转混乱或用户体验异常。
-> 
-> 如需在特定页面才允许重定向，请只在该页面调用自动重定向组件。
+> 入口页面必须用 `EasyRedirectWidgets.simpleRedirect` 包裹，不能直接写主页面，否则远程重定向不会生效！
+>
+> **错误用法：**
+> ```dart
+> home: HomePage(), // ❌ 这样不会自动重定向
+> ```
+>
+> **正确用法：**
+> ```dart
+> home: EasyRedirectWidgets.simpleRedirect(
+>   homeWidget: HomePage(),
+>   loadingWidget: LoadingScreen(),
+> ), // ✅ 这样才会自动重定向
+> ```
 
 ### 步骤1：创建 GitHub Gist 配置
 
@@ -840,6 +847,18 @@ await EasyRemoteConfig.init(
 - 确认 Gist 是公开的（public）
 - 检查 Gist 是否存在
 
+#### 6. isRedirectEnabled 为 true 但没有跳转？
+**问题**: 入口页面未用自动重定向组件包裹
+**解决**: 
+- 请确保你的 `MaterialApp` 的 `home:` 写法如下：
+  ```dart
+  home: EasyRedirectWidgets.simpleRedirect(
+    homeWidget: HomePage(),
+    loadingWidget: LoadingScreen(),
+  )
+  ```
+- 不能直接写 `home: HomePage()`，否则不会自动跳转！
+
 ### 调试步骤
 
 1. **启用调试模式**
@@ -1036,6 +1055,8 @@ Made with ❤️ for Flutter Community
 **⚠️ 注意事项：**
 
 > 建议仅在主页面或需要重定向的页面调用自动重定向方法或组件，避免在所有页面重复调用，防止页面跳转异常。
+>
+> **再次提醒：入口页面必须用 `EasyRedirectWidgets.simpleRedirect` 包裹，否则不会自动跳转！**
 
 ```dart
 // 初始化成功后自动检测并跳转
