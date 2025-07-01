@@ -274,6 +274,11 @@ class EasyRemoteConfig {
     return _stateManager.currentState;
   }
 
+  /// 配置状态流（用于UI自动响应配置变化）
+  Stream<ConfigState> get configStateStream {
+    return _stateManager.stateStream;
+  }
+
   /// 获取当前配置对象
   BasicRemoteConfig? get _currentConfig {
     final state = _stateManager.currentState;
