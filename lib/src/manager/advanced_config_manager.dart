@@ -3,6 +3,9 @@ import 'package:flutter/widgets.dart';
 import '../models/remote_config.dart';
 import '../services/remote_config_service.dart';
 import '../config/remote_config_options.dart';
+import '../core/lifecycle_aware_manager.dart';
+import '../core/config_event_manager.dart';
+import '../core/config_cache_manager.dart';
 
 /// 高级配置管理器
 /// 
@@ -32,7 +35,7 @@ import '../config/remote_config_options.dart';
 ///   print('配置已更新: ${config.version}');
 /// });
 /// ```
-class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
+class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManager {
   static AdvancedConfigManager? _instance;
   
   /// 获取单例实例
@@ -58,11 +61,10 @@ class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver 
   bool _isInitialized = false;
   bool _isAppInForeground = true;
 
-  // 配置变化回调
-  final StreamController<T> _configStreamController = StreamController<T>.broadcast();
+  late final ConfigCacheManager _cacheManager;
   
-  /// 配置变化流
-  Stream<T> get configStream => _configStreamController.stream;
+  /// 配置变化流（通过统一事件管理器）
+  Stream<T> get configStream => ConfigEventManager.instance.configStream<T>();
 
   /// 当前配置
   T? get currentConfig => _currentConfig;
@@ -81,7 +83,9 @@ class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver 
          cacheKeyPrefix: cacheKeyPrefix,
        ),
        _defaultConfigFactory = defaultConfigFactory,
-       _options = options;
+       _options = options {
+    _cacheManager = ConfigCacheManager(keyPrefix: cacheKeyPrefix ?? 'remote_config');
+  }
 
   /// 初始化全局配置管理器
   /// 
@@ -188,12 +192,19 @@ class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver 
     _currentConfig = null;
   }
 
-  /// 销毁配置管理器
-  static void dispose() {
-    if (_instance != null) {
-      (_instance as AdvancedConfigManager)._dispose();
-      _instance = null;
-    }
+  /// 生命周期回调由基类统一处理
+  @override
+  void onAppResumed() {
+    _checkConfigOnResume();
+    _startPeriodicCheck();
+  }
+  @override
+  void onAppPaused() {
+    _startPeriodicCheck(); // 切换到后台模式
+  }
+  @override
+  void onAppDetached() {
+    _dispose();
   }
 
   // ============ 生命周期处理 ============
@@ -417,19 +428,15 @@ class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver 
     return true;
   }
 
-  /// 通知配置变化
+  /// 通知配置变化（通过事件管理器广播）
   void _notifyConfigChanged(T newConfig) {
     if (_options.enableDebugLogs) {
       print('📢 配置变化通知: version=${newConfig.version}');
     }
-    
-    // 通过Stream发送配置更新事件
-    if (!_configStreamController.isClosed) {
-      _configStreamController.add(newConfig);
-    }
+    ConfigEventManager.instance.emit(ConfigChangedEvent(newConfig));
   }
 
-  /// 添加配置监听器
+  /// 添加配置监听器（兼容旧API，底层已切换为事件管理器）
   StreamSubscription<T> addConfigListener(void Function(T) onConfigChanged) {
     return configStream.listen(onConfigChanged);
   }
@@ -439,11 +446,9 @@ class AdvancedConfigManager<T extends RemoteConfig> with WidgetsBindingObserver 
     if (_options.enableDebugLogs) {
       print('🔄 销毁高级配置管理器');
     }
-    
-    WidgetsBinding.instance.removeObserver(this);
+    disposeLifecycle();
     _updateTimer?.cancel();
     _updateTimer = null;
-    _configStreamController.close();
     _isInitialized = false;
   }
 } 

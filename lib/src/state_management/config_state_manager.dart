@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/remote_config.dart';
+import '../core/config_event_manager.dart';
 
 /// 🎯 配置状态管理器
 /// 
@@ -11,14 +12,13 @@ class ConfigStateManager {
   static ConfigStateManager get instance => _instance ??= ConfigStateManager._();
   ConfigStateManager._();
 
-  final StreamController<ConfigState> _stateController = StreamController<ConfigState>.broadcast();
   ConfigState _currentState = ConfigState.uninitialized();
   
   /// 当前配置状态
   ConfigState get currentState => _currentState;
   
-  /// 配置状态流
-  Stream<ConfigState> get stateStream => _stateController.stream;
+  /// 配置状态流（通过统一事件管理器）
+  Stream<ConfigState> get stateStream => ConfigEventManager.instance.stateStream;
   
   /// 是否已初始化
   bool get isInitialized => _currentState.status != ConfigStatus.uninitialized;
@@ -30,9 +30,7 @@ class ConfigStateManager {
   void updateState(ConfigState newState) {
     if (_currentState != newState) {
       _currentState = newState;
-      if (!_stateController.isClosed) {
-        _stateController.add(newState);
-      }
+      ConfigEventManager.instance.emit(ConfigStateChangedEvent(newState));
       if (kDebugMode) {
         print('🎯 ConfigState: ${newState.status} - ${newState.message}');
       }
@@ -61,7 +59,6 @@ class ConfigStateManager {
   
   /// 销毁
   void dispose() {
-    _stateController.close();
     _instance = null;
   }
 }
