@@ -35,10 +35,13 @@ import 'core/config_event_manager.dart';
 ///   // 执行重定向逻辑
 /// }
 /// ```
-class EasyRemoteConfig {
+class EasyRemoteConfig with WidgetsBindingObserver {
   static EasyRemoteConfig? _instance;
   static EasyRemoteConfig get instance => _instance ??= EasyRemoteConfig._();
-  EasyRemoteConfig._();
+  EasyRemoteConfig._() {
+    // 注册前后台监听
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   bool _initialized = false;
   late final ConfigStateManager _stateManager;
@@ -289,6 +292,22 @@ class EasyRemoteConfig {
     if (!_initialized) {
       throw StateError('EasyRemoteConfig 未初始化！请先调用 EasyRemoteConfig.init()');
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App 回到前台时自动刷新配置
+      if (_initialized) {
+        print('🔄 [EasyRemoteConfig] App恢复前台，自动刷新配置...');
+        refresh();
+      }
+    }
+  }
+
+  // 记得在 dispose 时移除 observer（如有全局销毁场景）
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
   }
 }
 
