@@ -320,12 +320,10 @@ class RemoteConfigService<T extends RemoteConfig> {
     if (files.containsKey(options.configFileName)) {
       return files[options.configFileName]['content'] as String?;
     }
-    
     // 如果指定的文件名不是默认的 config.json，也尝试查找 config.json
     if (options.configFileName != 'config.json' && files.containsKey('config.json')) {
       return files['config.json']['content'] as String?;
     }
-    
     // 查找其他可能的配置文件名
     final configFileNames = ['app_config.json', 'settings.json', 'configuration.json'];
     for (final fileName in configFileNames) {
@@ -333,7 +331,6 @@ class RemoteConfigService<T extends RemoteConfig> {
         return files[fileName]['content'] as String?;
       }
     }
-    
     // 如果没有找到特定的配置文件，使用第一个 .json 文件
     for (final entry in files.entries) {
       final fileName = entry.key;
@@ -341,7 +338,21 @@ class RemoteConfigService<T extends RemoteConfig> {
         return entry.value['content'] as String?;
       }
     }
-    
+    // 新增：自动识别内容为 JSON 的文件（如 gistfile1.txt）
+    for (final entry in files.entries) {
+      final content = entry.value['content'] as String?;
+      if (content != null) {
+        try {
+          final jsonData = json.decode(content);
+          if (jsonData is Map<String, dynamic> && jsonData.containsKey('version')) {
+            // 只要能解析为Map且有version字段，就认为是配置
+            return content;
+          }
+        } catch (_) {
+          // 不是合法JSON，跳过
+        }
+      }
+    }
     return null;
   }
 
