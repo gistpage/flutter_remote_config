@@ -286,7 +286,7 @@ class RemoteConfigService<T extends RemoteConfig> {
       String? configContent = _extractConfigContent(files);
       
       if (configContent == null) {
-        throw Exception('在 Gist 中未找到配置文件 ${options.configFileName}');
+        throw Exception('在 Gist 中未找到任何可用的配置文件（已自动尝试所有文件名和内容）。请检查 Gist 是否包含内容为合法 JSON 且包含 version 字段的文件。');
       }
 
       final configJson = json.decode(configContent);
