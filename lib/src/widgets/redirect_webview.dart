@@ -4,14 +4,10 @@ import 'package:flutter/cupertino.dart';
 
 class RedirectWebView extends StatefulWidget {
   final String url;
-  final VoidCallback? onBack;
-  final String? title;
 
   const RedirectWebView({
     Key? key,
     required this.url,
-    this.onBack,
-    this.title,
   }) : super(key: key);
 
   @override
@@ -170,14 +166,6 @@ class _RedirectWebViewState extends State<RedirectWebView> {
         ],
       ),
     );
-  }
-
-  void _handleBack() {
-    if (widget.onBack != null) {
-      widget.onBack!();
-    } else {
-      Navigator.of(context).pop();
-    }
   }
 
   void _reload() {

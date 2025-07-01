@@ -112,11 +112,13 @@ import 'package:flutter_remote_config/flutter_remote_config.dart';
 
 **⚠️ 注意事项：**
 
-> **强烈建议**仅在主页面（如 `homeWidget`）或需要重定向的业务入口页面调用自动重定向组件（如 `EasyRedirectWidgets.simpleRedirect`）或 `EasyRemoteConfig.redirectIfNeeded(context)` 方法。
->
+> **本包仅支持自动重定向。**
+> 
+> **强烈建议**仅在主页面（如 `homeWidget`）或需要重定向的业务入口页面调用自动重定向组件（如 `EasyRedirectWidgets.simpleRedirect`）。
+> 
 > **不要在所有页面都全局调用**，否则可能导致页面跳转混乱或用户体验异常。
->
-> 如需在特定页面才允许重定向，请只在该页面调用相关方法或组件。
+> 
+> 如需在特定页面才允许重定向，请只在该页面调用自动重定向组件。
 
 ### 步骤1：创建 GitHub Gist 配置
 

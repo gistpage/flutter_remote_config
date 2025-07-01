@@ -9,7 +9,7 @@ import 'internal_widgets.dart';
 /// 解决原版本的初始化卡住问题，提供更可靠的重定向逻辑
 class ImprovedRedirectWidgets {
   
-  /// 🌐 智能重定向组件（推荐使用）
+  /// 🚀 智能重定向组件（推荐使用）
   /// 
   /// 相比原版本的改进：
   /// 1. 使用状态管理器，避免依赖Stream的延迟
@@ -29,27 +29,6 @@ class ImprovedRedirectWidgets {
       errorWidget: errorWidget,
       timeout: timeout,
       enableDebugLogs: enableDebugLogs,
-    );
-  }
-  
-  /// 🎯 条件重定向组件
-  /// 
-  /// 允许添加自定义重定向条件
-  static Widget conditionalRedirect({
-    required Widget homeWidget,
-    required bool Function(RemoteConfig config) condition,
-    Widget Function(String url)? redirectBuilder,
-    Widget? loadingWidget,
-    Widget? errorWidget,
-    Duration timeout = const Duration(seconds: 3),
-  }) {
-    return _ConditionalRedirectWidget(
-      homeWidget: homeWidget,
-      condition: condition,
-      redirectBuilder: redirectBuilder,
-      loadingWidget: loadingWidget,
-      errorWidget: errorWidget,
-      timeout: timeout,
     );
   }
 }
@@ -184,55 +163,6 @@ class _SmartRedirectWidgetState extends State<_SmartRedirectWidget> {
             ],
           ),
         );
-      },
-    );
-  }
-}
-
-/// 🎯 条件重定向Widget实现
-class _ConditionalRedirectWidget extends StatelessWidget {
-  final Widget homeWidget;
-  final bool Function(RemoteConfig config) condition;
-  final Widget Function(String url)? redirectBuilder;
-  final Widget? loadingWidget;
-  final Widget? errorWidget;
-  final Duration timeout;
-
-  const _ConditionalRedirectWidget({
-    required this.homeWidget,
-    required this.condition,
-    this.redirectBuilder,
-    this.loadingWidget,
-    this.errorWidget,
-    required this.timeout,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<ConfigState>(
-      stream: ConfigStateManager.instance.stateStream,
-      initialData: ConfigStateManager.instance.currentState,
-      builder: (context, snapshot) {
-        final state = snapshot.data ?? ConfigState.uninitialized();
-        
-        if (state.canUseConfig && condition(state.config!)) {
-          if (state.config is BasicRemoteConfig) {
-            final redirectUrl = (state.config! as BasicRemoteConfig).getValue('redirectUrl', '');
-            if (redirectUrl.isNotEmpty) {
-              return redirectBuilder?.call(redirectUrl) ?? WebViewPage(url: redirectUrl);
-            }
-          }
-        }
-        
-        if (state.status == ConfigStatus.error && state.config == null) {
-          return errorWidget ?? homeWidget;
-        }
-        
-        if (state.shouldShowLoading) {
-          return loadingWidget ?? const Center(child: CircularProgressIndicator());
-        }
-        
-        return homeWidget;
       },
     );
   }
