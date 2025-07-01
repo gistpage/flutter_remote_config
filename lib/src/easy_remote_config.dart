@@ -92,6 +92,7 @@ class EasyRemoteConfig {
     } catch (e) {
       if (debugMode) {
         print('❌ EasyRemoteConfig V2 初始化失败: $e');
+        print('⚠️ EasyRemoteConfig: 启用本地defaults作为兜底配置');
       }
       // 创建默认配置作为备用
       final defaultConfig = BasicRemoteConfig(data: defaults);
