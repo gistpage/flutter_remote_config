@@ -291,20 +291,6 @@ if (EasyRemoteConfig.instance.shouldRedirect) {
 }
 ```
 
-### 🚀 手动触发重定向
-
-```dart
-// 在任何地方手动触发重定向检查
-EasyRemoteConfig.redirectIfNeeded(
-  context,
-  onBack: () {
-    // 用户从重定向页面返回时的回调
-    print('用户返回了');
-  },
-  title: '重定向页面', // 自定义页面标题
-);
-```
-
 ### 🎨 自动重定向组件
 
 ```dart
@@ -323,17 +309,58 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-### 📊 获取配置值
+## 📚 API 参考
+
+### 核心方法
 
 ```dart
-// 获取任意配置值
-String version = EasyRemoteConfig.instance.getString('version', '1');
-bool customFlag = EasyRemoteConfig.instance.getBool('customFlag', false);
-int timeout = EasyRemoteConfig.instance.getInt('timeout', 30);
+// 初始化
+await EasyRemoteConfig.init(
+  gistId: 'your-gist-id',
+  githubToken: 'your-token',
+);
+
+// 检查是否需要跳转
+bool shouldRedirect = EasyRemoteConfig.instance.shouldRedirect;
+
+// 获取跳转地址
+String redirectUrl = EasyRemoteConfig.instance.redirectUrl;
+
+// 检查是否启用跳转
+bool isEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
+
+// 手动刷新配置
+await EasyRemoteConfig.instance.refresh();
+
+// 监听配置变化
+EasyRemoteConfig.instance.listen(() {
+  // 处理配置更新
+});
+```
+
+### 配置获取方法
+
+```dart
+// 获取字符串值
+String value = EasyRemoteConfig.instance.getString('key', 'defaultValue');
+
+// 获取布尔值
+bool flag = EasyRemoteConfig.instance.getBool('key', false);
+
+// 获取整数值
+int number = EasyRemoteConfig.instance.getInt('key', 0);
+
+// 获取双精度值
+double decimal = EasyRemoteConfig.instance.getDouble('key', 0.0);
+
+// 获取Map对象
+Map<String, dynamic> object = EasyRemoteConfig.instance.getMap('key', {});
+
+// 获取List数组
+List<dynamic> array = EasyRemoteConfig.instance.getList('key', []);
 
 // 获取所有配置
 Map<String, dynamic> allConfig = EasyRemoteConfig.instance.getAllConfig();
-print('当前配置: $allConfig');
 ```
 
 ## 🔧 实用技巧
@@ -654,9 +681,6 @@ await EasyRemoteConfig.instance.refresh();
 EasyRemoteConfig.instance.listen(() {
   // 处理配置更新
 });
-
-// 手动触发重定向
-EasyRemoteConfig.redirectIfNeeded(context);
 ```
 
 ### 配置获取方法
@@ -701,7 +725,7 @@ EasyRedirectWidgets.simpleRedirect(
 final redirectUrl = EasyRemoteConfig.instance.getString('redirectUrl', '');
 if (redirectUrl.isNotEmpty && (redirectUrl.startsWith('https://') || redirectUrl.startsWith('http://'))) {
   // 只允许HTTP/HTTPS重定向
-  EasyRemoteConfig.redirectIfNeeded(context);
+  // 这里不再提供手动重定向API，所有跳转由自动重定向组件统一管理
 } else {
   print('不安全的重定向URL: $redirectUrl');
 }
@@ -1016,14 +1040,7 @@ Made with ❤️ for Flutter Community
 ```dart
 // 初始化成功后自动检测并跳转
 await EasyRemoteConfig.init(...);
-EasyRemoteConfig.redirectIfNeeded(context);
-
-// 带回调的重定向
-EasyRemoteConfig.redirectIfNeeded(
-  context,
-  onBack: () => print('用户返回了'),
-  title: '重定向页面',
-);
+// 自动重定向由 simpleRedirect 组件统一管理
 ```
 
 ## 🎯 快速测试指南
