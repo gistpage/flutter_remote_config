@@ -117,17 +117,56 @@ import 'package:flutter_remote_config/flutter_remote_config.dart';
 
 ## 🎯 快速开始（3分钟完成）
 
-**⚠️ 集成关键提醒：**
+### 方式一：自动重定向组件（最推荐）
 
-> 入口页面必须用 `EasyRedirectWidgets.simpleRedirect` 包裹，不能直接写主页面，否则远程重定向不会生效！
->
-> **推荐用法（自动跳转，强烈建议）：**
-> ```dart
-> home: EasyRedirectWidgets.simpleRedirect(
->   homeWidget: HomePage(),
->   loadingWidget: LoadingScreen(),
-> ), // 🚀 自动根据远程配置跳转，无需手动判断
-> ```
+> **强烈建议：新手和大部分业务场景只需用本方式，页面会自动根据远程配置切换，无需写任何事件监听和跳转逻辑！**
+
+#### 步骤1：初始化远程配置
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await EasyRemoteConfig.init(
+    gistId: 'your-gist-id',         // 你的 Gist ID
+    githubToken: 'your-token',      // 你的 GitHub Token
+    // defaults: {...}               // 可选：本地默认配置
+  );
+  runApp(MyApp());
+}
+```
+
+#### 步骤2：入口页面用自动重定向组件包裹
+
+```dart
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: EasyRedirectWidgets.simpleRedirect(
+        homeWidget: HomePage(),         // 配置未要求跳转时显示
+        loadingWidget: LoadingScreen(), // 配置加载中显示
+      ),
+    );
+  }
+}
+```
+
+- `HomePage()` 是你自己的主页面。
+- `LoadingScreen()` 是配置加载时的占位页面（可自定义）。
+
+#### 典型 Gist 配置示例
+
+```json
+{
+  "version": "1",
+  "isRedirectEnabled": true,
+  "redirectUrl": "https://your-redirect-url.com"
+}
+```
+
+> 只要 gist 配置 `isRedirectEnabled: true` 且 `redirectUrl` 有值，页面就会自动跳转。
+
+---
 
 ### 步骤1：创建 GitHub Gist 配置
 
@@ -426,9 +465,17 @@ bool isEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
 // 手动刷新配置
 await EasyRemoteConfig.instance.refresh();
 
-// 监听配置变化
-EasyRemoteConfig.instance.listen(() {
-  // 处理配置更新
+// 监听配置变化（推荐：监听状态流）
+_configSub = EasyRemoteConfig.instance.configStateStream.listen((state) {
+  if (state.status == ConfigStatus.loaded) {
+    // 配置加载成功时处理更新
+    setState(() {});
+  }
+});
+
+// 或者简化版（只关心有变动时处理更新）
+_configSub = EasyRemoteConfig.instance.listen(() {
+  setState(() {});
 });
 ```
 
@@ -476,8 +523,19 @@ EasyRemoteConfig.instance.refresh().then((_) {
 ### 监听配置变化
 
 ```dart
-// 监听配置更新
-EasyRemoteConfig.instance.listen(() {
+// 监听配置更新（推荐：监听状态流）
+_configSub = EasyRemoteConfig.instance.configStateStream.listen((state) {
+  if (state.status == ConfigStatus.loaded) {
+    print('配置已更新');
+    // 处理配置变化
+    if (EasyRemoteConfig.instance.shouldRedirect) {
+      // 新的重定向配置生效
+    }
+  }
+});
+
+// 或者简化版（只关心有变动时处理更新）
+_configSub = EasyRemoteConfig.instance.listen(() {
   print('配置已更新');
   // 处理配置变化
   if (EasyRemoteConfig.instance.shouldRedirect) {
@@ -771,9 +829,17 @@ bool isEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
 // 手动刷新配置
 await EasyRemoteConfig.instance.refresh();
 
-// 监听配置变化
-EasyRemoteConfig.instance.listen(() {
-  // 处理配置更新
+// 监听配置变化（推荐：监听状态流）
+_configSub = EasyRemoteConfig.instance.configStateStream.listen((state) {
+  if (state.status == ConfigStatus.loaded) {
+    // 配置加载成功时处理更新
+    setState(() {});
+  }
+});
+
+// 或者简化版（只关心有变动时处理更新）
+_configSub = EasyRemoteConfig.instance.listen(() {
+  setState(() {});
 });
 ```
 
@@ -1271,3 +1337,37 @@ home: HotReloadFriendlyRedirect(
 
 - 生产环境和冷启动、前后台切换体验完全一致，无需任何特殊兼容代码。
 - 热重载兼容组件仅为开发体验优化，不影响最终上线包。
+
+## ⚡ 自动刷新与事件监听（官方推荐用法）
+
+> **强烈建议：**
+> 只要你监听了配置变化事件，包内部会自动检测 gist 配置变动并推送事件，UI 自动刷新，无需手动定时调用 `refresh()`。
+
+### 推荐写法
+
+```dart
+@override
+void initState() {
+  super.initState();
+  // 监听配置变化事件，配置变动时自动刷新UI
+  _configSub = EasyRemoteConfig.instance.configStateStream.listen((state) {
+    if (state.status == ConfigStatus.loaded) {
+      _loadConfig(); // 你的刷新逻辑
+    }
+  });
+  _loadConfig(); // 首次加载
+}
+
+@override
+void dispose() {
+  _configSub?.cancel(); // 记得取消监听
+  super.dispose();
+}
+```
+
+- 这样只要 gist 配置有变动，包内部会自动拉取并推送事件，UI 自动刷新。
+- **无需手动定时调用 refresh()**，除非你有特殊业务需求。
+- 如果 UI 没有自动刷新，请检查是否监听了事件。
+- 也可以使用简化版：`EasyRemoteConfig.instance.listen(() { _loadConfig(); })`
+
+---

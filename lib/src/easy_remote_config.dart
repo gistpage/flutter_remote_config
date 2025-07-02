@@ -209,8 +209,20 @@ class EasyRemoteConfig with WidgetsBindingObserver {
     _checkInitialized();
     try {
       _stateManager.setInitializing('正在刷新配置...');
-      final config = await AdvancedConfigManager.instance.refreshConfig();
-      _stateManager.setLoaded(config, '配置刷新成功');
+      
+      // 检查 AdvancedConfigManager 是否可用
+      if (AdvancedConfigManager.isManagerInitialized) {
+        final config = await AdvancedConfigManager.instance.refreshConfig();
+        _stateManager.setLoaded(config, '配置刷新成功');
+      } else {
+        // AdvancedConfigManager 不可用时，使用当前配置
+        final currentConfig = _currentConfig;
+        if (currentConfig != null) {
+          _stateManager.setLoaded(currentConfig, '使用当前配置（管理器不可用）');
+        } else {
+          _stateManager.setError('配置管理器不可用且无当前配置', null);
+        }
+      }
     } catch (e) {
       _stateManager.setError('配置刷新失败: $e', _currentConfig);
     }

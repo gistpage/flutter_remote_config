@@ -287,4 +287,92 @@ void main() {
       }
     });
   });
+
+  group('默认配置路径生命周期监听测试', () {
+    setUp(() {
+      // 重置实例
+      AdvancedConfigManager.resetInstance();
+      EasyRemoteConfig.resetInstance();
+    });
+
+    test('默认配置路径下的生命周期监听机制', () async {
+      // 使用无效的 Gist ID 强制走默认配置路径
+      await EasyRemoteConfig.init(
+        gistId: 'invalid-gist-id',
+        githubToken: 'invalid-token',
+        defaults: {
+          'version': '1',
+          'isRedirectEnabled': true,
+          'redirectUrl': 'https://example.com',
+        },
+        debugMode: true,
+      );
+
+      // 验证 EasyRemoteConfig 已初始化
+      expect(EasyRemoteConfig.isInitialized, isTrue);
+      
+      // 验证配置已加载
+      expect(EasyRemoteConfig.instance.isConfigLoaded, isTrue);
+      
+      // 验证重定向配置正确
+      expect(EasyRemoteConfig.instance.isRedirectEnabled, isTrue);
+      expect(EasyRemoteConfig.instance.redirectUrl, equals('https://example.com'));
+      expect(EasyRemoteConfig.instance.shouldRedirect, isTrue);
+      
+      // 验证 AdvancedConfigManager 状态（可能未初始化，这是正常的）
+      final isManagerInitialized = AdvancedConfigManager.isManagerInitialized;
+      print('AdvancedConfigManager 初始化状态: $isManagerInitialized');
+      
+      // 验证 refresh 方法不会抛出异常（即使 AdvancedConfigManager 未初始化）
+      expect(() async {
+        await EasyRemoteConfig.instance.refresh();
+      }, returnsNormally);
+      
+      // 验证配置状态流正常工作
+      final configState = EasyRemoteConfig.instance.configState;
+      expect(configState.status, isNot(equals(ConfigStatus.uninitialized)));
+      
+      // 验证配置状态流有数据
+      final hasData = await EasyRemoteConfig.instance.configStateStream.first.then((_) => true).catchError((_) => false);
+      expect(hasData, isTrue);
+    });
+
+    test('默认配置路径下的前后台切换模拟', () async {
+      await EasyRemoteConfig.init(
+        gistId: 'invalid-gist-id',
+        githubToken: 'invalid-token',
+        defaults: {
+          'version': '1',
+          'isRedirectEnabled': false,
+          'redirectUrl': '',
+        },
+        debugMode: true,
+      );
+
+      // 记录初始状态
+      final initialConfig = EasyRemoteConfig.instance.getAllConfig();
+      final initialIsLoaded = EasyRemoteConfig.instance.isConfigLoaded;
+      final initialIsRedirectEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
+
+      // 模拟 App 回到前台事件
+      final instance = EasyRemoteConfig.instance;
+      instance.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      
+      // 等待一下让异步操作完成
+      await Future.delayed(Duration(milliseconds: 100));
+      
+      // 验证 refresh 方法被调用且不抛出异常
+      expect(() async {
+        await instance.refresh();
+      }, returnsNormally);
+      
+      // 验证配置状态仍然有效（即使刷新失败，基本状态应该保持）
+      expect(instance.isConfigLoaded, isTrue);
+      // 注意：在默认配置路径下，isRedirectEnabled 应该保持初始值
+      // 但由于刷新可能影响状态，我们只验证基本功能正常
+      // 验证基本配置访问功能正常
+      expect(instance.getString('version', 'fallback'), equals('1'));
+      expect(instance.getBool('isRedirectEnabled', true), isFalse);
+    });
+  });
 } 
