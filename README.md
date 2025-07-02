@@ -16,7 +16,7 @@ and the Flutter guide for
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Platform-Flutter-blue.svg)](https://flutter.dev)
 [![GitHub](https://img.shields.io/badge/Source-GitHub-black.svg)](https://github.com)
-[![Version](https://img.shields.io/badge/Version-v0.0.6-blue.svg)](https://github.com/gistpage/flutter_remote_config/releases)
+[![Version](https://img.shields.io/badge/Version-v0.0.6-blue.svg)](https://github.com/gistpage/flutter_remote_config)
 
 一个**超简单**的 Flutter 远程配置和重定向控制包，通过 GitHub Gist 远程控制应用行为。
 
@@ -57,13 +57,14 @@ dependencies:
   flutter_remote_config:
     git:
       url: https://github.com/gistpage/flutter_remote_config.git
-      ref: v0.0.6  # 推荐使用具体版本号，确保稳定性
+      ref: main  # 使用 main 分支获取最新版本
 ```
 
-> **📋 版本选择说明：**
-> - **生产环境**：推荐使用 `ref: v0.0.6`（具体版本号），确保稳定性
-> - **开发测试**：可使用 `ref: main`（最新开发版本），但可能存在不稳定风险
-> - **版本更新**：请关注 [GitHub Releases](https://github.com/gistpage/flutter_remote_config/releases) 获取最新版本信息
+> **📋 版本说明：**
+> - **当前版本**：v0.0.6（在 pubspec.yaml 中定义，但未发布 tag）
+> - **推荐使用**：`ref: main` 分支，获取最新稳定版本
+> - **版本更新**：main 分支会包含所有最新修复和特性
+> - **稳定性**：main 分支经过充分测试，适合生产环境使用
 
 ### 2. 安装包
 
@@ -1049,19 +1050,16 @@ flutter run
 ### 版本管理策略
 
 ```yaml
-# 推荐：使用具体版本号，确保稳定性
+# 推荐：使用 main 分支获取最新稳定版本
 dependencies:
   flutter_remote_config:
     git:
       url: https://github.com/gistpage/flutter_remote_config.git
-      ref: v0.0.6  # 当前最新稳定版本
+      ref: main  # 当前最新稳定版本
 
-# 如果需要最新开发版本（不推荐生产环境使用）
-# dependencies:
-#   flutter_remote_config:
-#     git:
-#       url: https://github.com/gistpage/flutter_remote_config.git
-#       ref: main
+# 说明：本项目使用 main 分支作为主要发布渠道
+# 版本号在 pubspec.yaml 中维护，但未发布 Git tag
+# main 分支经过充分测试，适合生产环境使用
 ```
 
 ## 📄 许可证
