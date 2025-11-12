@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+// 顶层仅做导出聚合，无需引入 material
 
 // 🚀 简化API (推荐使用)
 export 'src/easy_remote_config.dart';

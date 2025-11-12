@@ -107,6 +107,8 @@ flutter pub get
 <uses-permission android:name="android.permission.INTERNET" />
 ```
 
+> 为确保设备 IP 归属判断正常，建议在 Android 示例或你的应用工程中加入网络权限；iOS 请参考上面的 Info.plist 配置。
+
 ### 5. 添加导入
 
 在需要使用的 Dart 文件中添加导入：
@@ -159,12 +161,17 @@ class MyApp extends StatelessWidget {
 ```json
 {
   "version": "1",
-  "isRedirectEnabled": true,
-  "redirectUrl": "https://your-redirect-url.com"
+  "isRedirectEnabled": false,
+  "redirectUrl": "https://example.com",
+  "allowCountries": [],
+  "isCountryCheckEnabled": false,
+  "isTimezoneCheckEnabled": false,
+  "isIpAttributionCheckEnabled": false,
+  "extra": {}
 }
 ```
 
-> 只要 gist 配置 `isRedirectEnabled: true` 且 `redirectUrl` 有值，页面就会自动跳转。
+> 当 `isRedirectEnabled: true` 且 `redirectUrl` 有值时：如果开启了任一校验（`isCountryCheckEnabled` / `isTimezoneCheckEnabled` / `isIpAttributionCheckEnabled`），会根据 `allowCountries` 进行门控校验，全部通过后才跳转；未开启校验则直接跳转。
 
 ---
 
@@ -391,6 +398,8 @@ if (isLoading)
 
 > ⚡ 推荐入口使用 `ImprovedRedirectWidgets.smartRedirect` 或 `EasyRedirectWidgets.simpleRedirect`，它们会自动监听配置变化并重建WebViewPage，配合新版WebViewPage可实现真正的热切换跳转。
 
+> 两种入口组件均已内置门控校验：当开启国家/时区/IP 归属任一校验时，会在跳转前执行 `allowCountries` 的门控判断，校验通过后才进入 WebView。
+
 ## 🌐 常用方法
 
 ### 🎯 检查重定向状态
@@ -409,6 +418,35 @@ bool isEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
 if (EasyRemoteConfig.instance.shouldRedirect) {
   String url = EasyRemoteConfig.instance.redirectUrl;
   print('需要跳转到: $url');
+}
+```
+
+### 🛡️ 门控重定向校验
+
+```dart
+// 当 isRedirectEnabled=true 且 redirectUrl 非空时，如开启了以下任一校验：
+// - isCountryCheckEnabled: 校验设备国家码是否在 allowCountries（ISO 3166-1 alpha-2）
+// - isTimezoneCheckEnabled: 校验设备时区偏移是否属于 allowCountries 的国家偏移集合（分钟级匹配）
+// - isIpAttributionCheckEnabled: 校验设备公网 IP 归属国家是否在 allowCountries（多源回退获取）
+// 则需通过门控校验才会跳转
+
+final ok = await EasyRemoteConfig.instance.gatedShouldRedirect();
+if (ok) {
+  // 通过门控，安全跳转
+}
+```
+
+```json
+// v4 配置示例：开启国家校验
+{
+  "version": "4",
+  "isRedirectEnabled": true,
+  "redirectUrl": "https://example.com",
+  "allowCountries": ["US", "BR", "CN"],
+  "isCountryCheckEnabled": true,
+  "isTimezoneCheckEnabled": false,
+  "isIpAttributionCheckEnabled": false,
+  "extra": {}
 }
 ```
 
@@ -503,6 +541,14 @@ List<dynamic> array = EasyRemoteConfig.instance.getList('key', []);
 // 获取所有配置
 Map<String, dynamic> allConfig = EasyRemoteConfig.instance.getAllConfig();
 ```
+
+### 重定向配置字段说明
+- `isRedirectEnabled`：是否启用重定向
+- `redirectUrl`：重定向目标地址（建议 HTTPS）
+- `allowCountries`：允许国家列表（ISO 3166-1 alpha-2 两位码）
+- `isCountryCheckEnabled`：启用国家码门控
+- `isTimezoneCheckEnabled`：启用时区门控（分钟级 UTC 偏移匹配）
+- `isIpAttributionCheckEnabled`：启用 IP 归属门控（多源回退）
 
 ## 🔧 实用技巧
 
@@ -891,6 +937,17 @@ if (redirectUrl.isNotEmpty && (redirectUrl.startsWith('https://') || redirectUrl
 }
 ```
 
+### 2. 门控校验建议
+- `allowCountries` 使用 ISO 3166-1 alpha-2 两位代码（如 US、CN、JP）。
+- 时区校验采用分钟级 UTC 偏移匹配，并包含常见国家的小时级回退；可与 IP 归属校验组合提升准确性。
+- IP 归属校验采用多源回退获取两位国家码（ipapi.co → ipinfo.io → api.ip.sb），并缓存 6 小时，网络不可用时自动降级不跳转。
+
+### 3. 常见原因导致门控未通过
+- `allowCountries` 为空但开启了任意校验；
+- 设备国家码不在 `allowCountries`；
+- 设备时区偏移不匹配 `allowCountries` 的国家偏移集合；
+- 设备公网 IP 归属国家码不在 `allowCountries` 或无法获取。
+
 ### 2. 错误处理
 ```dart
 // 🛡️ 优雅的错误处理
@@ -1012,6 +1069,14 @@ await EasyRemoteConfig.init(
   ```
 - 不能直接写 `home: HomePage()`，否则不会自动跳转！
 - **如果切回App或配置变更后WebView未跳转，请升级到最新版，确保WebViewPage已支持url变更自动跳转。**
+
+#### 7. 开启校验后仍未跳转？
+**检查：**
+- `allowCountries` 是否为空；
+- 设备国家码是否在 `allowCountries`；
+- 设备时区偏移（分钟）是否属于 `allowCountries` 对应国家的偏移集合；
+- 设备 IP 归属国家是否能获取且在 `allowCountries`；
+- 使用国内网络时，可依赖多源回退（已内置）提升 IP 归属获取成功率。
 
 ### 调试步骤
 

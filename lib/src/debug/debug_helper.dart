@@ -41,7 +41,7 @@ class RemoteConfigDebugHelper {
       final logMessage = '[$timestamp] $message';
       _logs.add(logMessage);
       if (kDebugMode) {
-        print('🔧 RemoteConfig: $message');
+        debugPrint('🔧 RemoteConfig: $message');
       }
       
       // 保持日志数量在合理范围内

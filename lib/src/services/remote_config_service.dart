@@ -6,7 +6,7 @@ import '../models/remote_config.dart';
 import '../config/remote_config_options.dart';
 
 /// 远程配置服务
-/// 
+///
 /// 智能配置管理策略：
 /// 1. 版本号机制：配置包含版本号，快速检测更新
 /// 2. ETag支持：利用HTTP ETag减少不必要的数据传输
@@ -21,6 +21,9 @@ class RemoteConfigService<T extends RemoteConfig> {
   final String _etagKey;
   final String _versionKey;
   final String _lastCheckKey;
+
+  // 用于在“应用启动检查”阶段抑制重复日志，仅影响日志输出，不改变逻辑
+  bool _inLaunchCheck = false;
 
   RemoteConfigService({
     required this.options,
@@ -45,15 +48,16 @@ class RemoteConfigService<T extends RemoteConfig> {
       // 强制刷新时直接从远程获取
       if (forceRefresh) {
         if (options.enableDebugLogs && kDebugMode) {
-          print('🔄 强制刷新配置');
+          debugPrint('🔄 强制刷新配置');
         }
         return await _fetchAndCacheFromGist();
       }
 
       // 跳过缓存时间检查 或 正常的时间检查
-      if (skipCacheTimeCheck || await _shouldCheckForUpdate(isAppInForeground)) {
+      if (skipCacheTimeCheck ||
+          await _shouldCheckForUpdate(isAppInForeground)) {
         if (options.enableDebugLogs) {
-          print('⏰ 检查配置更新');
+          debugPrint('⏰ 检查配置更新');
         }
         return await _checkForUpdateAndGet(isAppInForeground);
       }
@@ -63,20 +67,19 @@ class RemoteConfigService<T extends RemoteConfig> {
       if (cachedConfig != null) {
         if (options.enableDebugLogs) {
           final version = await _getCachedVersion();
-          print('📦 使用缓存配置: version=$version');
+          debugPrint('📦 使用缓存配置: version=$version');
         }
         return cachedConfig;
       }
 
       // 缓存不可用，从远程获取
       if (options.enableDebugLogs) {
-        print('🌐 缓存不可用，从远程获取配置');
+        debugPrint('🌐 缓存不可用，从远程获取配置');
       }
       return await _fetchAndCacheFromGist();
-      
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('❌ 获取配置失败: $e');
+        debugPrint('❌ 获取配置失败: $e');
       }
       return await _handleFetchError();
     }
@@ -85,48 +88,50 @@ class RemoteConfigService<T extends RemoteConfig> {
   /// 应用启动时获取配置（绕过短期缓存）
   Future<T> getConfigOnLaunch() async {
     if (options.enableDebugLogs) {
-      print('🚀 应用启动，检查最新配置');
+      debugPrint('🔍 启动检查配置版本（ETag）');
     }
-    
+
+    _inLaunchCheck = true;
     try {
       // 检查是否有配置更新（使用ETag优化）
       final hasUpdate = await _checkVersionUpdate();
       if (hasUpdate) {
         if (options.enableDebugLogs) {
-          print('🆕 启动时发现配置更新');
+          debugPrint('🆕 启动时发现配置更新');
         }
         return await _fetchAndCacheFromGist();
       }
-      
+
       // 没有更新，使用缓存（即使是短期缓存）
       final cachedConfig = await _getAnyCachedConfig();
       if (cachedConfig != null) {
         if (options.enableDebugLogs) {
-          print('📦 启动时使用缓存配置: version=${cachedConfig.version}');
+          debugPrint('✅ 启动检查：未更新，使用缓存 version=${cachedConfig.version}');
         }
         return cachedConfig;
       }
-      
+
       // 缓存也没有，从远程获取
       if (options.enableDebugLogs) {
-        print('🌐 启动时首次获取配置');
+        debugPrint('🌐 启动时首次获取配置');
       }
       return await _fetchAndCacheFromGist();
-      
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('❌ 启动时获取配置失败: $e');
+        debugPrint('❌ 启动时获取配置失败: $e');
       }
       return await _handleFetchError();
+    } finally {
+      _inLaunchCheck = false;
     }
   }
 
   /// 应用恢复前台时检查配置
   Future<T> getConfigOnResume() async {
     if (options.enableDebugLogs) {
-      print('👀 应用恢复前台，检查配置更新');
+      debugPrint('👀 应用恢复前台，检查配置更新');
     }
-    
+
     // 恢复前台时使用正常的更新检查逻辑，但跳过缓存时间检查
     return await getConfig(
       forceRefresh: false,
@@ -140,22 +145,22 @@ class RemoteConfigService<T extends RemoteConfig> {
     final hasUpdate = await _checkVersionUpdate();
     if (hasUpdate) {
       if (options.enableDebugLogs) {
-        print('🆕 发现配置更新');
+        debugPrint('🆕 发现配置更新');
       }
       return await _fetchAndCacheFromGist();
     }
-    
+
     // 没有更新，返回缓存配置
     final cachedConfig = await _getCachedConfig(isAppInForeground);
     if (cachedConfig != null) {
       if (options.enableDebugLogs) {
-        print('📦 配置无更新，使用缓存');
+        debugPrint('📦 配置无更新，使用缓存');
       }
       // 更新最后检查时间
       await _updateLastCheckTime();
       return cachedConfig;
     }
-    
+
     // 缓存不可用，从远程获取
     return await _fetchAndCacheFromGist();
   }
@@ -164,17 +169,17 @@ class RemoteConfigService<T extends RemoteConfig> {
   Future<bool> _shouldCheckForUpdate(bool isAppInForeground) async {
     final prefs = await SharedPreferences.getInstance();
     final lastCheckTime = prefs.getInt(_lastCheckKey);
-    
+
     if (lastCheckTime == null) return true;
-    
+
     final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckTime);
     final now = DateTime.now();
     final timeSinceLastCheck = now.difference(lastCheck);
-    
-    final checkInterval = isAppInForeground 
-        ? options.foregroundCheckInterval 
+
+    final checkInterval = isAppInForeground
+        ? options.foregroundCheckInterval
         : options.backgroundCheckInterval;
-    
+
     return timeSinceLastCheck >= checkInterval;
   }
 
@@ -183,61 +188,130 @@ class RemoteConfigService<T extends RemoteConfig> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedETag = prefs.getString(_etagKey);
-      
+      final cachedConfigString = prefs.getString(_cacheKey);
+
       final url = Uri.parse('https://api.github.com/gists/${options.gistId}');
-      
+
       final headers = {
         'Authorization': 'Bearer ${options.githubToken}',
         'Accept': 'application/vnd.github.v3+json',
         'X-GitHub-Api-Version': '2022-11-28',
       };
-      
+
       // 如果有ETag，添加If-None-Match头
       if (cachedETag != null && cachedETag.isNotEmpty) {
         headers['If-None-Match'] = cachedETag;
       }
-      
-      if (options.enableDebugLogs) {
-        print('🔍 检查配置版本更新...');
+
+      if (options.enableDebugLogs && !_inLaunchCheck) {
+        debugPrint('🔍 检查配置版本更新...');
       }
-      
-      final response = await http.get(url, headers: headers).timeout(options.requestTimeout);
-      
+
+      final response = await http
+          .get(url, headers: headers)
+          .timeout(options.requestTimeout);
+
       if (response.statusCode == 304) {
         // 304 Not Modified - 配置没有变化
-        if (options.enableDebugLogs) {
-          print('✅ 配置无变化 (304)');
+        if (options.enableDebugLogs && !_inLaunchCheck) {
+          debugPrint('✅ 配置无变化 (304)');
         }
         await _updateLastCheckTime();
         return false;
       }
-      
+
       if (response.statusCode == 200) {
         // 有新内容，检查版本号
         final responseETag = response.headers['etag'];
         final data = json.decode(response.body);
         final files = data['files'];
-        
+
         String? configContent = _extractConfigContent(files);
-        
+
         if (configContent != null) {
           final configJson = json.decode(configContent);
           final remoteVersion = configJson['version'] as String?;
           final cachedVersion = prefs.getString(_versionKey);
-          
-          if (options.enableDebugLogs) {
-            print('🏷️ 远程版本: $remoteVersion, 缓存版本: $cachedVersion');
+
+          if (options.enableDebugLogs && !_inLaunchCheck) {
+            debugPrint('🏷️ 远程版本: $remoteVersion, 缓存版本: $cachedVersion');
           }
 
           // 比较版本号
           if (remoteVersion != cachedVersion) {
-            if (options.enableDebugLogs) {
-              print('🆕 发现新版本: $remoteVersion');
+            if (options.enableDebugLogs && !_inLaunchCheck) {
+              debugPrint('🆕 发现新版本: $remoteVersion');
             }
             return true;
           }
+
+          // 版本相同，进一步比较配置内容是否发生变化（处理未更新版本号的情况）
+          try {
+            if (cachedConfigString != null) {
+              final cachedJson =
+                  json.decode(cachedConfigString) as Map<String, dynamic>;
+              final remoteJson = configJson as Map<String, dynamic>;
+
+              bool deepMapEquals(
+                Map<String, dynamic> a,
+                Map<String, dynamic> b,
+              ) {
+                if (identical(a, b)) return true;
+                if (a.length != b.length) return false;
+                for (final key in a.keys) {
+                  if (!b.containsKey(key)) return false;
+                  final av = a[key];
+                  final bv = b[key];
+                  if (av is Map && bv is Map) {
+                    if (!deepMapEquals(
+                      av.cast<String, dynamic>(),
+                      bv.cast<String, dynamic>(),
+                    )) {
+                      return false;
+                    }
+                  } else if (av is List && bv is List) {
+                    bool deepListEquals(List<dynamic> x, List<dynamic> y) {
+                      if (identical(x, y)) return true;
+                      if (x.length != y.length) return false;
+                      for (var i = 0; i < x.length; i++) {
+                        final xi = x[i];
+                        final yi = y[i];
+                        if (xi is Map && yi is Map) {
+                          if (!deepMapEquals(
+                            xi.cast<String, dynamic>(),
+                            yi.cast<String, dynamic>(),
+                          )) {
+                            return false;
+                          }
+                        } else if (xi is List && yi is List) {
+                          if (!deepListEquals(xi, yi)) return false;
+                        } else {
+                          if (xi != yi) return false;
+                        }
+                      }
+                      return true;
+                    }
+
+                    if (!deepListEquals(av, bv)) return false;
+                  } else {
+                    if (av != bv) return false;
+                  }
+                }
+                return true;
+              }
+
+              if (!deepMapEquals(remoteJson, cachedJson)) {
+                if (options.enableDebugLogs && !_inLaunchCheck) {
+                  debugPrint('🔁 版本未变但配置内容变化，触发更新');
+                }
+                return true;
+              }
+            }
+          } catch (_) {
+            // 内容比较失败时不影响正常流程
+          }
         }
-        
+
         // 版本相同，更新ETag和检查时间
         if (responseETag != null) {
           await prefs.setString(_etagKey, responseETag);
@@ -245,16 +319,15 @@ class RemoteConfigService<T extends RemoteConfig> {
         await _updateLastCheckTime();
         return false;
       }
-      
+
       // 其他状态码当作没有更新
-      if (options.enableDebugLogs) {
-        print('⚠️ 检查更新失败: ${response.statusCode}');
+      if (options.enableDebugLogs && !_inLaunchCheck) {
+        debugPrint('⚠️ 检查更新失败: ${response.statusCode}');
       }
       return false;
-      
     } catch (e) {
-      if (options.enableDebugLogs) {
-        print('⚠️ 检查版本更新失败: $e');
+      if (options.enableDebugLogs && !_inLaunchCheck) {
+        debugPrint('⚠️ 检查版本更新失败: $e');
       }
       return false; // 网络错误时保守处理
     }
@@ -263,46 +336,50 @@ class RemoteConfigService<T extends RemoteConfig> {
   /// 从远程获取配置并缓存
   Future<T> _fetchAndCacheFromGist() async {
     if (options.enableDebugLogs) {
-      print('🌐 从 GitHub Gist 获取配置...');
+      debugPrint('🌐 从 GitHub Gist 获取配置...');
     }
-    
+
     final url = Uri.parse('https://api.github.com/gists/${options.gistId}');
-    
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${options.githubToken}',
-        'Accept': 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-    ).timeout(options.requestTimeout);
+
+    final response = await http
+        .get(
+          url,
+          headers: {
+            'Authorization': 'Bearer ${options.githubToken}',
+            'Accept': 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        )
+        .timeout(options.requestTimeout);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final files = data['files'];
       final responseETag = response.headers['etag'];
-      
+
       // 查找配置文件
       String? configContent = _extractConfigContent(files);
-      
+
       if (configContent == null) {
-        throw Exception('在 Gist 中未找到任何可用的配置文件（已自动尝试所有文件名和内容）。请检查 Gist 是否包含内容为合法 JSON 且包含 version 字段的文件。');
+        throw Exception(
+          '在 Gist 中未找到任何可用的配置文件（已自动尝试所有文件名和内容）。请检查 Gist 是否包含内容为合法 JSON 且包含 version 字段的文件。',
+        );
       }
 
       final configJson = json.decode(configContent);
-      
+
       // 验证配置格式
       if (!_isValidConfig(configJson)) {
         throw Exception('配置格式无效');
       }
-      
+
       final config = configFactory(configJson);
-      
+
       // 缓存配置和元数据
       await _cacheConfig(config, responseETag);
-      
+
       if (options.enableDebugLogs) {
-        print('✅ 成功获取远程配置: version=${config.version}');
+        debugPrint('✅ 成功获取远程配置: version=${config.version}');
       }
       return config;
     } else if (response.statusCode == 401) {
@@ -319,21 +396,33 @@ class RemoteConfigService<T extends RemoteConfig> {
     // 优先查找指定的配置文件
     if (files.containsKey(options.configFileName)) {
       final content = files[options.configFileName]['content'] as String?;
-      print('[RemoteConfig] 命中指定文件: ${options.configFileName}, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+      debugPrint(
+        '[RemoteConfig] 命中指定文件: ${options.configFileName}, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}',
+      );
       return content;
     }
     // 如果指定的文件名不是默认的 config.json，也尝试查找 config.json
-    if (options.configFileName != 'config.json' && files.containsKey('config.json')) {
+    if (options.configFileName != 'config.json' &&
+        files.containsKey('config.json')) {
       final content = files['config.json']['content'] as String?;
-      print('[RemoteConfig] 命中 config.json, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+      debugPrint(
+        '[RemoteConfig] 命中 config.json, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}',
+      );
       return content;
     }
     // 查找其他可能的配置文件名
-    final configFileNames = ['app_config.json', 'settings.json', 'configuration.json'];
+    final configFileNames = [
+      'app_config.json',
+      'settings.json',
+      'configuration.json',
+    ];
     for (final fileName in configFileNames) {
       if (files.containsKey(fileName)) {
         final content = files[fileName]['content'] as String?;
-        print('[RemoteConfig] 命中 $fileName, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+        final preview1 = content != null
+            ? content.substring(0, content.length > 100 ? 100 : content.length)
+            : '';
+        debugPrint('[RemoteConfig] 命中 $fileName, 内容前100字符: \\n$preview1');
         return content;
       }
     }
@@ -342,7 +431,12 @@ class RemoteConfigService<T extends RemoteConfig> {
       final fileName = entry.key;
       if (fileName.endsWith('.json')) {
         final content = entry.value['content'] as String?;
-        print('[RemoteConfig] 命中 .json 文件: $fileName, 内容前100字符: \\n${content?.substring(0, content.length > 100 ? 100 : content.length)}');
+        final preview2 = content != null
+            ? content.substring(0, content.length > 100 ? 100 : content.length)
+            : '';
+        debugPrint(
+          '[RemoteConfig] 命中 .json 文件: $fileName, 内容前100字符: \\n$preview2',
+        );
         return content;
       }
     }
@@ -350,12 +444,18 @@ class RemoteConfigService<T extends RemoteConfig> {
     for (final entry in files.entries) {
       final fileName = entry.key;
       final content = entry.value['content'] as String?;
-      print('[RemoteConfig] 检查文件: $fileName, 内容前100字符: \\n${content?.substring(0, content != null && content.length > 100 ? 100 : (content?.length ?? 0))}');
+      final preview3 = content != null
+          ? content.substring(0, content.length > 100 ? 100 : content.length)
+          : '';
+      debugPrint('[RemoteConfig] 检查文件: $fileName, 内容前100字符: \\n$preview3');
       if (content != null) {
         try {
           final jsonData = json.decode(content);
-          if (jsonData is Map<String, dynamic> && jsonData.containsKey('version')) {
-            print('[RemoteConfig] 自动识别到 JSON 配置文件: $fileName, 内容前100字符: \\n${content.substring(0, content.length > 100 ? 100 : content.length)}');
+          if (jsonData is Map<String, dynamic> &&
+              jsonData.containsKey('version')) {
+            debugPrint(
+              '[RemoteConfig] 自动识别到 JSON 配置文件: $fileName, 内容前100字符: \\n${content.substring(0, content.length > 100 ? 100 : content.length)}',
+            );
             return content;
           }
         } catch (e) {
@@ -363,7 +463,7 @@ class RemoteConfigService<T extends RemoteConfig> {
         }
       }
     }
-    print('[RemoteConfig] 未找到任何可用的配置文件。');
+    debugPrint('[RemoteConfig] 未找到任何可用的配置文件。');
     return null;
   }
 
@@ -373,29 +473,30 @@ class RemoteConfigService<T extends RemoteConfig> {
       final prefs = await SharedPreferences.getInstance();
       final cachedConfigJson = prefs.getString(_cacheKey);
       final cacheTime = prefs.getInt(_cacheTimeKey);
-      
+
       if (cachedConfigJson != null && cacheTime != null) {
         final cacheDateTime = DateTime.fromMillisecondsSinceEpoch(cacheTime);
         final now = DateTime.now();
         final timeSinceCache = now.difference(cacheDateTime);
-        
+
         // 根据应用状态使用不同缓存策略
-        final cacheExpiry = isAppInForeground 
-            ? options.shortCacheExpiry 
+        final cacheExpiry = isAppInForeground
+            ? options.shortCacheExpiry
             : options.longCacheExpiry;
-        
+
         // 检查缓存是否过期
         if (timeSinceCache < cacheExpiry) {
-          final configJson = json.decode(cachedConfigJson) as Map<String, dynamic>;
+          final configJson =
+              json.decode(cachedConfigJson) as Map<String, dynamic>;
           return configFactory(configJson);
         }
       }
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('⚠️ 读取缓存配置失败: $e');
+        debugPrint('⚠️ 读取缓存配置失败: $e');
       }
     }
-    
+
     return null;
   }
 
@@ -404,17 +505,18 @@ class RemoteConfigService<T extends RemoteConfig> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedConfigJson = prefs.getString(_cacheKey);
-      
+
       if (cachedConfigJson != null) {
-        final configJson = json.decode(cachedConfigJson) as Map<String, dynamic>;
+        final configJson =
+            json.decode(cachedConfigJson) as Map<String, dynamic>;
         return configFactory(configJson);
       }
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('⚠️ 读取任意缓存配置失败: $e');
+        debugPrint('⚠️ 读取任意缓存配置失败: $e');
       }
     }
-    
+
     return null;
   }
 
@@ -424,10 +526,10 @@ class RemoteConfigService<T extends RemoteConfig> {
       final prefs = await SharedPreferences.getInstance();
       final configJson = json.encode(config.toJson());
       final currentTime = DateTime.now().millisecondsSinceEpoch;
-      
+
       await prefs.setString(_cacheKey, configJson);
       await prefs.setInt(_cacheTimeKey, currentTime);
-      
+
       // 缓存版本号和ETag
       if (config.version != null) {
         await prefs.setString(_versionKey, config.version!);
@@ -435,16 +537,16 @@ class RemoteConfigService<T extends RemoteConfig> {
       if (etag != null) {
         await prefs.setString(_etagKey, etag);
       }
-      
+
       // 更新最后检查时间
       await _updateLastCheckTime();
-      
+
       if (options.enableDebugLogs) {
-        print('💾 配置已缓存: version=${config.version}');
+        debugPrint('💾 配置已缓存: version=${config.version}');
       }
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('❌ 缓存配置失败: $e');
+        debugPrint('❌ 缓存配置失败: $e');
       }
     }
   }
@@ -459,11 +561,11 @@ class RemoteConfigService<T extends RemoteConfig> {
       await prefs.remove(_versionKey);
       await prefs.remove(_lastCheckKey);
       if (options.enableDebugLogs) {
-        print('🗑️ 所有配置缓存已清除');
+        debugPrint('🗑️ 所有配置缓存已清除');
       }
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('❌ 清除缓存失败: $e');
+        debugPrint('❌ 清除缓存失败: $e');
       }
     }
   }
@@ -474,11 +576,11 @@ class RemoteConfigService<T extends RemoteConfig> {
     final expiredCachedConfig = await _getAnyCachedConfig();
     if (expiredCachedConfig != null) {
       if (options.enableDebugLogs) {
-        print('🔄 使用过期缓存配置作为备用');
+        debugPrint('🔄 使用过期缓存配置作为备用');
       }
       return expiredCachedConfig;
     }
-    
+
     // 如果没有缓存，抛出异常让上层处理
     throw Exception('无法获取配置且没有可用的缓存');
   }
@@ -491,7 +593,7 @@ class RemoteConfigService<T extends RemoteConfig> {
       await prefs.setInt(_lastCheckKey, currentTime);
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('⚠️ 更新检查时间失败: $e');
+        debugPrint('⚠️ 更新检查时间失败: $e');
       }
     }
   }
@@ -503,7 +605,7 @@ class RemoteConfigService<T extends RemoteConfig> {
       return prefs.getString(_versionKey);
     } catch (e) {
       if (options.enableDebugLogs) {
-        print('⚠️ 获取缓存版本失败: $e');
+        debugPrint('⚠️ 获取缓存版本失败: $e');
       }
       return null;
     }
@@ -514,22 +616,22 @@ class RemoteConfigService<T extends RemoteConfig> {
     // 基本验证：确保是有效的JSON对象
     if (config.isEmpty) {
       if (options.enableDebugLogs) {
-        print('⚠️ 配置不能为空');
+        debugPrint('⚠️ 配置不能为空');
       }
       return false;
     }
-    
+
     // 如果有版本号，确保是字符串类型
     if (config.containsKey('version')) {
       final version = config['version'];
       if (version is! String) {
         if (options.enableDebugLogs) {
-          print('⚠️ 版本号必须是字符串类型');
+          debugPrint('⚠️ 版本号必须是字符串类型');
         }
         return false;
       }
     }
-    
+
     return true;
   }
 }

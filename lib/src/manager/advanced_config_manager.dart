@@ -5,7 +5,6 @@ import '../services/remote_config_service.dart';
 import '../config/remote_config_options.dart';
 import '../core/lifecycle_aware_manager.dart';
 import '../core/config_event_manager.dart';
-import '../core/config_cache_manager.dart';
 
 /// 高级配置管理器
 /// 
@@ -67,9 +66,9 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   T? _currentConfig;
   Timer? _updateTimer;
   bool _isInitialized = false;
-  bool _isAppInForeground = true;
+  int? _lastCheckIntervalMinutes;
+  bool? _lastForegroundState;
 
-  late final ConfigCacheManager _cacheManager;
   
   /// 配置变化流（通过统一事件管理器）
   Stream<T> get configStream => ConfigEventManager.instance.configStream<T>();
@@ -92,7 +91,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
        ),
        _defaultConfigFactory = defaultConfigFactory,
        _options = options {
-    _cacheManager = ConfigCacheManager(keyPrefix: cacheKeyPrefix ?? 'remote_config');
+    // 使用 RemoteConfigService 自身的缓存策略，无需额外的本地缓存管理器
   }
 
   /// 初始化全局配置管理器
@@ -140,7 +139,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     if (_isInitialized) return;
 
     if (_options.enableDebugLogs) {
-      print('🚀 初始化高级配置管理器');
+      debugPrint('🚀 初始化高级配置管理器');
     }
     
     // 注册生命周期监听
@@ -154,7 +153,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     
     _isInitialized = true;
     if (_options.enableDebugLogs) {
-      print('✅ 高级配置管理器初始化完成');
+      debugPrint('✅ 高级配置管理器初始化完成');
     }
   }
 
@@ -167,7 +166,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     try {
       final config = await _configService.getConfig(
         forceRefresh: forceRefresh,
-        isAppInForeground: _isAppInForeground,
+        isAppInForeground: isAppInForeground,
       );
       
       // 检查配置是否有变化
@@ -179,24 +178,24 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
       return config;
     } catch (e) {
       if (_options.enableDebugLogs) {
-        print('❌ AdvancedConfigManager获取配置失败: $e');
+        debugPrint('❌ AdvancedConfigManager获取配置失败: $e');
       }
       // 返回当前配置或默认配置
       final fallbackConfig = _currentConfig ?? _defaultConfigFactory();
       
       if (_options.enableDebugLogs) {
         if (_currentConfig != null) {
-          print('🔄 使用当前缓存的配置作为兜底');
-          print('📄 当前配置内容: ${_currentConfig?.toJson()}');
+          debugPrint('🔄 使用当前缓存的配置作为兜底');
+          debugPrint('📄 当前配置内容: ${_currentConfig?.toJson()}');
         } else {
           final defaultConfig = _defaultConfigFactory();
-          print('🏠 使用默认配置作为兜底');
-          print('📄 默认配置 JSON: ${defaultConfig.toJson()}');
+          debugPrint('🏠 使用默认配置作为兜底');
+          debugPrint('📄 默认配置 JSON: ${defaultConfig.toJson()}');
           if (defaultConfig is BasicRemoteConfig) {
-            print('🔧 默认配置详细信息:');
+            debugPrint('🔧 默认配置详细信息:');
             final configData = defaultConfig.toJson();
             configData.forEach((key, value) {
-              print('   ├─ $key: $value (${value.runtimeType})');
+              debugPrint('   ├─ $key: $value (${value.runtimeType})');
             });
           }
         }
@@ -209,7 +208,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   /// 手动刷新配置
   Future<T> refreshConfig() async {
     if (_options.enableDebugLogs) {
-      print('🔄 手动刷新配置');
+      debugPrint('🔄 手动刷新配置');
     }
     return await getConfig(forceRefresh: true);
   }
@@ -235,63 +234,9 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     _dispose();
   }
 
-  // ============ 生命周期处理 ============
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    
-    switch (state) {
-      case AppLifecycleState.resumed:
-        _onAppResumed();
-        break;
-      case AppLifecycleState.paused:
-        _onAppPaused();
-        break;
-      case AppLifecycleState.detached:
-        _onAppDetached();
-        break;
-      case AppLifecycleState.inactive:
-        // 应用非激活状态，通常是短暂的
-        break;
-      case AppLifecycleState.hidden:
-        // 应用隐藏状态
-        break;
-    }
-  }
-
-  /// 应用恢复前台
-  void _onAppResumed() {
-    if (_options.enableDebugLogs) {
-      print('👀 应用恢复前台');
-    }
-    _isAppInForeground = true;
-    
-    // 恢复前台时立即检查配置更新
-    _checkConfigOnResume();
-    
-    // 重启定时检查（前台模式）
-    _startPeriodicCheck();
-  }
-
-  /// 应用进入后台
-  void _onAppPaused() {
-    if (_options.enableDebugLogs) {
-      print('🔔 应用进入后台');
-    }
-    _isAppInForeground = false;
-    
-    // 切换到后台模式的定时检查
-    _startPeriodicCheck();
-  }
-
-  /// 应用被销毁
-  void _onAppDetached() {
-    if (_options.enableDebugLogs) {
-      print('💀 应用被销毁');
-    }
-    _dispose();
-  }
+  // ============ 生命周期处理由基类统一分发 ============
+  // 依赖 LifecycleAwareManager.didChangeAppLifecycleState -> onAppResumed/onAppPaused/onAppDetached
+  // 避免重复的生命周期分发导致的重复日志与重复检查
 
   // ============ 私有方法 ============
 
@@ -299,11 +244,11 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   Future<void> _loadInitialConfig() async {
     try {
       if (_options.enableDebugLogs) {
-        print('📥 加载初始配置');
+        debugPrint('📥 加载初始配置');
       }
       _currentConfig = await _configService.getConfigOnLaunch();
       if (_options.enableDebugLogs) {
-        print('✅ 初始配置加载完成: version=${_currentConfig?.version}');
+        debugPrint('✅ 初始配置加载完成: version=${_currentConfig?.version}');
       }
       
       // 通知初始配置
@@ -312,20 +257,20 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
       }
     } catch (e) {
       if (_options.enableDebugLogs) {
-        print('❌ 加载初始配置失败: $e');
-        print('⚠️ AdvancedConfigManager: 启用本地defaults作为兜底配置');
+        debugPrint('❌ 加载初始配置失败: $e');
+        debugPrint('⚠️ AdvancedConfigManager: 启用本地defaults作为兜底配置');
       }
       // 使用默认配置
       _currentConfig = _defaultConfigFactory();
       
       if (_options.enableDebugLogs) {
-        print('✅ AdvancedConfigManager: 成功创建默认配置');
-        print('📄 AdvancedConfigManager 默认配置 JSON: ${_currentConfig?.toJson()}');
+        debugPrint('✅ AdvancedConfigManager: 成功创建默认配置');
+        debugPrint('📄 AdvancedConfigManager 默认配置 JSON: ${_currentConfig?.toJson()}');
         if (_currentConfig is BasicRemoteConfig) {
-          print('🔧 AdvancedConfigManager 默认配置详细信息:');
+          debugPrint('🔧 AdvancedConfigManager 默认配置详细信息:');
           final configData = (_currentConfig as BasicRemoteConfig).toJson();
           configData.forEach((key, value) {
-            print('   ├─ $key: $value (${value.runtimeType})');
+            debugPrint('   ├─ $key: $value (${value.runtimeType})');
           });
           
           // 特别显示重定向相关配置
@@ -334,10 +279,10 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
           final redirectUrl = basicConfig.getValue('redirectUrl', '');
           final version = basicConfig.getValue('version', '1');
           
-          print('🌐 AdvancedConfigManager 重定向配置检查:');
-          print('   ├─ isRedirectEnabled: $isRedirectEnabled');
-          print('   ├─ redirectUrl: $redirectUrl');
-          print('   └─ version: $version');
+          debugPrint('🌐 AdvancedConfigManager 重定向配置检查:');
+          debugPrint('   ├─ isRedirectEnabled: $isRedirectEnabled');
+          debugPrint('   ├─ redirectUrl: $redirectUrl');
+          debugPrint('   └─ version: $version');
         }
       }
       
@@ -351,21 +296,21 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     Future(() async {
       try {
         if (_options.enableDebugLogs) {
-          print('🔍 恢复前台时检查配置更新');
+          debugPrint('🔍 恢复前台时检查配置更新');
         }
         final config = await _configService.getConfigOnResume();
         
         // 比较配置是否有变化
         if (_hasConfigChanged(_currentConfig, config)) {
           if (_options.enableDebugLogs) {
-            print('🆕 恢复前台时发现配置更新');
+            debugPrint('🆕 恢复前台时发现配置更新');
           }
           _currentConfig = config;
           _notifyConfigChanged(config);
         }
       } catch (e) {
         if (_options.enableDebugLogs) {
-          print('⚠️ 恢复前台时检查配置失败: $e');
+          debugPrint('⚠️ 恢复前台时检查配置失败: $e');
         }
       }
     });
@@ -376,13 +321,18 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
     _updateTimer?.cancel();
     
     // 根据应用状态选择检查间隔
-    final interval = _isAppInForeground 
+    final interval = isAppInForeground 
         ? _options.foregroundCheckInterval   // 前台：可配置间隔
         : _options.backgroundCheckInterval;  // 后台：可配置间隔
     
-    if (_options.enableDebugLogs) {
-      print('⏰ 启动定时检查 (间隔: ${interval.inMinutes}分钟, 前台: $_isAppInForeground)');
+    // 仅在检查参数变化时输出日志，减少噪音
+    final shouldLog = _lastCheckIntervalMinutes != interval.inMinutes ||
+        _lastForegroundState != isAppInForeground;
+    if (shouldLog && _options.enableDebugLogs) {
+      debugPrint('⏰ 启动定时检查 (间隔: ${interval.inMinutes}分钟, 前台: $isAppInForeground)');
     }
+    _lastCheckIntervalMinutes = interval.inMinutes;
+    _lastForegroundState = isAppInForeground;
     
     _updateTimer = Timer.periodic(interval, (timer) async {
       await _periodicConfigCheck();
@@ -393,24 +343,24 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   Future<void> _periodicConfigCheck() async {
     try {
       if (_options.enableDebugLogs) {
-        print('⏰ 定时检查配置更新');
+        debugPrint('⏰ 定时检查配置更新');
       }
       final config = await _configService.getConfig(
         forceRefresh: false,
-        isAppInForeground: _isAppInForeground,
+        isAppInForeground: isAppInForeground,
       );
       
       // 检查配置是否有变化
       if (_hasConfigChanged(_currentConfig, config)) {
         if (_options.enableDebugLogs) {
-          print('🆕 定时检查发现配置更新');
+          debugPrint('🆕 定时检查发现配置更新');
         }
         _currentConfig = config;
         _notifyConfigChanged(config);
       }
     } catch (e) {
       if (_options.enableDebugLogs) {
-        print('⚠️ 定时检查配置失败: $e');
+        debugPrint('⚠️ 定时检查配置失败: $e');
       }
     }
   }
@@ -484,7 +434,7 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   /// 通知配置变化（通过事件管理器广播）
   void _notifyConfigChanged(T newConfig) {
     if (_options.enableDebugLogs) {
-      print('📢 配置变化通知: version=${newConfig.version}');
+      debugPrint('📢 配置变化通知: version=${newConfig.version}');
     }
     ConfigEventManager.instance.emit(ConfigChangedEvent(newConfig));
   }
@@ -497,11 +447,11 @@ class AdvancedConfigManager<T extends RemoteConfig> extends LifecycleAwareManage
   /// 私有销毁方法
   void _dispose() {
     if (_options.enableDebugLogs) {
-      print('🔄 销毁高级配置管理器');
+      debugPrint('🔄 销毁高级配置管理器');
     }
     disposeLifecycle();
     _updateTimer?.cancel();
     _updateTimer = null;
     _isInitialized = false;
   }
-} 
+}

@@ -32,7 +32,7 @@ class ConfigStateManager {
       _currentState = newState;
       ConfigEventManager.instance.emit(ConfigStateChangedEvent(newState));
       if (kDebugMode) {
-        print('🎯 ConfigState: ${newState.status} - ${newState.message}');
+        debugPrint('🎯 ConfigState: ${newState.status} - ${newState.message}');
       }
     }
   }

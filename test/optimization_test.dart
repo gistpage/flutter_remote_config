@@ -5,7 +5,6 @@ import 'package:flutter_remote_config/src/core/lifecycle_aware_manager.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_remote_config/flutter_remote_config.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_remote_config/src/manager/advanced_config_manager.dart';
 
 class DummyConfig extends Object {}
 
@@ -51,7 +50,11 @@ void main() {
       bool resumed = false;
       bool paused = false;
       bool detached = false;
-      final m = TestManager(() => resumed = true, () => paused = true, () => detached = true);
+      final m = TestManager(
+        () => resumed = true,
+        () => paused = true,
+        () => detached = true,
+      );
       m.didChangeAppLifecycleState(AppLifecycleState.resumed);
       expect(resumed, isTrue);
       m.didChangeAppLifecycleState(AppLifecycleState.paused);
@@ -71,13 +74,13 @@ void main() {
     test('基本配置获取性能测试', () async {
       // 该测试确保配置获取操作在可接受的时间内完成
       final stopwatch = Stopwatch()..start();
-      
+
       await EasyRemoteConfig.init(
         gistId: 'test-gist-id',
         githubToken: 'test-token',
         debugMode: false,
       );
-      
+
       stopwatch.stop();
       expect(stopwatch.elapsedMilliseconds, lessThan(5000)); // 5秒内完成
     });
@@ -98,7 +101,10 @@ void main() {
       stopwatch2.stop();
 
       // 第二次获取应该更快（缓存效果）
-      expect(stopwatch2.elapsedMicroseconds, lessThan(stopwatch1.elapsedMicroseconds));
+      expect(
+        stopwatch2.elapsedMicroseconds,
+        lessThan(stopwatch1.elapsedMicroseconds),
+      );
       expect(config1, equals(config2));
     });
 
@@ -172,13 +178,19 @@ void main() {
       );
 
       expect(EasyRemoteConfig.instance.isRedirectEnabled, isFalse);
-      expect(EasyRemoteConfig.instance.redirectUrl, equals('https://example.com'));
-      expect(EasyRemoteConfig.instance.shouldRedirect, isFalse); // 因为 isRedirectEnabled 为 false
+      expect(
+        EasyRemoteConfig.instance.redirectUrl,
+        equals('https://example.com'),
+      );
+      expect(
+        EasyRemoteConfig.instance.shouldRedirect,
+        isFalse,
+      ); // 因为 isRedirectEnabled 为 false
 
       // 重置并测试：默认配置启用重定向
       AdvancedConfigManager.resetInstance();
       EasyRemoteConfig.resetInstance();
-      
+
       await EasyRemoteConfig.init(
         gistId: 'invalid-gist-id',
         githubToken: 'invalid-token',
@@ -191,7 +203,10 @@ void main() {
       );
 
       expect(EasyRemoteConfig.instance.isRedirectEnabled, isTrue);
-      expect(EasyRemoteConfig.instance.redirectUrl, equals('https://flutter.dev'));
+      expect(
+        EasyRemoteConfig.instance.redirectUrl,
+        equals('https://flutter.dev'),
+      );
       expect(EasyRemoteConfig.instance.shouldRedirect, isTrue); // 都满足条件
     });
 
@@ -213,12 +228,21 @@ void main() {
       );
 
       // 验证各种数据类型都能正确获取
-      expect(EasyRemoteConfig.instance.getString('stringValue'), equals('test string'));
+      expect(
+        EasyRemoteConfig.instance.getString('stringValue'),
+        equals('test string'),
+      );
       expect(EasyRemoteConfig.instance.getInt('intValue'), equals(42));
       expect(EasyRemoteConfig.instance.getDouble('doubleValue'), equals(3.14));
       expect(EasyRemoteConfig.instance.getBool('boolValue'), isTrue);
-      expect(EasyRemoteConfig.instance.getList<String>('listValue'), equals(['item1', 'item2']));
-      expect(EasyRemoteConfig.instance.getMap('mapValue'), equals({'key1': 'value1', 'key2': 'value2'}));
+      expect(
+        EasyRemoteConfig.instance.getList<String>('listValue'),
+        equals(['item1', 'item2']),
+      );
+      expect(
+        EasyRemoteConfig.instance.getMap('mapValue'),
+        equals({'key1': 'value1', 'key2': 'value2'}),
+      );
     });
 
     test('空默认配置测试', () async {
@@ -233,7 +257,10 @@ void main() {
       expect(EasyRemoteConfig.isInitialized, isTrue);
 
       // 应该返回方法中指定的默认值
-      expect(EasyRemoteConfig.instance.getString('nonexistent', 'fallback'), equals('fallback'));
+      expect(
+        EasyRemoteConfig.instance.getString('nonexistent', 'fallback'),
+        equals('fallback'),
+      );
       expect(EasyRemoteConfig.instance.getBool('nonexistent', true), isTrue);
       expect(EasyRemoteConfig.instance.getInt('nonexistent', 999), equals(999));
     });
@@ -265,10 +292,7 @@ void main() {
       await EasyRemoteConfig.init(
         gistId: 'invalid-gist-id',
         githubToken: 'invalid-token',
-        defaults: {
-          'version': '1',
-          'isRedirectEnabled': false,
-        },
+        defaults: {'version': '1', 'isRedirectEnabled': false},
         debugMode: true,
       );
 
@@ -310,30 +334,35 @@ void main() {
 
       // 验证 EasyRemoteConfig 已初始化
       expect(EasyRemoteConfig.isInitialized, isTrue);
-      
+
       // 验证配置已加载
       expect(EasyRemoteConfig.instance.isConfigLoaded, isTrue);
-      
+
       // 验证重定向配置正确
       expect(EasyRemoteConfig.instance.isRedirectEnabled, isTrue);
-      expect(EasyRemoteConfig.instance.redirectUrl, equals('https://example.com'));
+      expect(
+        EasyRemoteConfig.instance.redirectUrl,
+        equals('https://example.com'),
+      );
       expect(EasyRemoteConfig.instance.shouldRedirect, isTrue);
-      
+
       // 验证 AdvancedConfigManager 状态（可能未初始化，这是正常的）
       final isManagerInitialized = AdvancedConfigManager.isManagerInitialized;
-      print('AdvancedConfigManager 初始化状态: $isManagerInitialized');
-      
+      debugPrint('AdvancedConfigManager 初始化状态: $isManagerInitialized');
+
       // 验证 refresh 方法不会抛出异常（即使 AdvancedConfigManager 未初始化）
       expect(() async {
         await EasyRemoteConfig.instance.refresh();
       }, returnsNormally);
-      
+
       // 验证配置状态流正常工作
       final configState = EasyRemoteConfig.instance.configState;
       expect(configState.status, isNot(equals(ConfigStatus.uninitialized)));
-      
+
       // 验证配置状态流有数据
-      final hasData = await EasyRemoteConfig.instance.configStateStream.first.then((_) => true).catchError((_) => false);
+      final hasData = await EasyRemoteConfig.instance.configStateStream.first
+          .then((_) => true)
+          .catchError((_) => false);
       expect(hasData, isTrue);
     });
 
@@ -349,23 +378,20 @@ void main() {
         debugMode: true,
       );
 
-      // 记录初始状态
-      final initialConfig = EasyRemoteConfig.instance.getAllConfig();
-      final initialIsLoaded = EasyRemoteConfig.instance.isConfigLoaded;
-      final initialIsRedirectEnabled = EasyRemoteConfig.instance.isRedirectEnabled;
+      // 记录初始状态（移除未使用的变量以满足静态检查）
 
       // 模拟 App 回到前台事件
       final instance = EasyRemoteConfig.instance;
       instance.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      
+
       // 等待一下让异步操作完成
       await Future.delayed(Duration(milliseconds: 100));
-      
+
       // 验证 refresh 方法被调用且不抛出异常
       expect(() async {
         await instance.refresh();
       }, returnsNormally);
-      
+
       // 验证配置状态仍然有效（即使刷新失败，基本状态应该保持）
       expect(instance.isConfigLoaded, isTrue);
       // 注意：在默认配置路径下，isRedirectEnabled 应该保持初始值
@@ -375,4 +401,4 @@ void main() {
       expect(instance.getBool('isRedirectEnabled', true), isFalse);
     });
   });
-} 
+}

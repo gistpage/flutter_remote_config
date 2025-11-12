@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter/cupertino.dart';
 import 'internal_widgets.dart';
 import '../easy_remote_config.dart';
 import 'dart:async';
@@ -9,9 +8,9 @@ class RedirectWebView extends StatefulWidget {
   final String url;
 
   const RedirectWebView({
-    Key? key,
+    super.key,
     required this.url,
-  }) : super(key: key);
+  });
 
   @override
   State<RedirectWebView> createState() => _RedirectWebViewState();
@@ -22,7 +21,6 @@ class _RedirectWebViewState extends State<RedirectWebView> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _hasTimedOut = false;
-  String _currentTitle = '';
   String _errorMessage = '';
   late final StreamSubscription<void> _configSub; // 监听配置变化
 
@@ -46,7 +44,7 @@ class _RedirectWebViewState extends State<RedirectWebView> {
       if (!EasyRemoteConfig.instance.isRedirectEnabled && mounted) {
         // 业务说明：当后台关闭重定向时，通过外层 Widget 的 declarative return 切换页面
         // 移除 maybePop() 调用，完全依赖外层的 StreamBuilder 监听和 return 切换
-        print('🔄 检测到重定向已禁用，等待外层 Widget 切换页面');
+        debugPrint('🔄 检测到重定向已禁用，等待外层 Widget 切换页面');
       }
     });
   }
@@ -74,21 +72,9 @@ class _RedirectWebViewState extends State<RedirectWebView> {
               onLoadStop: (controller, url) async {
                 if (mounted) {
                   setState(() => _isLoading = false);
-                  try {
-                    final title = await controller.getTitle();
-                    if (title != null && title.isNotEmpty && mounted) {
-                      setState(() => _currentTitle = title);
-                    }
-                  } catch (e) {
-                    // 忽略获取标题失败
-                  }
                 }
               },
-              onTitleChanged: (controller, title) {
-                if (title != null && mounted) {
-                  setState(() => _currentTitle = title);
-                }
-              },
+              onTitleChanged: (controller, title) {},
               onReceivedError: (controller, request, error) {
                 if (mounted) {
                   setState(() {
@@ -198,42 +184,10 @@ class _RedirectWebViewState extends State<RedirectWebView> {
     }
   }
 
-  void _showInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('页面信息'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('目标URL: ${widget.url}'),
-            const SizedBox(height: 8),
-            Text('状态: ${_hasError ? "错误" : _hasTimedOut ? "超时" : _isLoading ? "加载中" : "已加载"}'),
-            if (_errorMessage.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('错误信息: $_errorMessage'),
-            ],
-            const SizedBox(height: 16),
-            const Text(
-              'iOS加载问题解决方案：\n\n1. 在Info.plist中添加：\n<key>NSAppTransportSecurity</key>\n<dict>\n  <key>NSAllowsArbitraryLoads</key>\n  <true/>\n</dict>\n\n2. 确保目标网址可访问',
-              style: TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   void dispose() {
     _configSub.cancel();
     super.dispose();
   }
-} 
+}

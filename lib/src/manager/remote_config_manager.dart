@@ -63,7 +63,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
     if (_isInitialized) return;
 
     if (_options.enableDebugLogs) {
-      print('🚀 初始化配置管理器');
+      debugPrint('🚀 初始化配置管理器');
     }
     
     // 注册生命周期监听
@@ -77,14 +77,14 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
     
     _isInitialized = true;
     if (_options.enableDebugLogs) {
-      print('✅ 配置管理器初始化完成');
+      debugPrint('✅ 配置管理器初始化完成');
     }
   }
 
   /// 销毁配置管理器
   void dispose() {
     if (_options.enableDebugLogs) {
-      print('🔄 销毁配置管理器');
+      debugPrint('🔄 销毁配置管理器');
     }
     
     WidgetsBinding.instance.removeObserver(this);
@@ -115,7 +115,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
       return config;
     } catch (e) {
       if (_options.enableDebugLogs) {
-        print('❌ ConfigManager获取配置失败: $e');
+        debugPrint('❌ ConfigManager获取配置失败: $e');
       }
       // 返回当前配置或默认配置
       return _currentConfig ?? _defaultConfigFactory();
@@ -125,7 +125,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   /// 手动刷新配置
   Future<T> refreshConfig() async {
     if (_options.enableDebugLogs) {
-      print('🔄 手动刷新配置');
+      debugPrint('🔄 手动刷新配置');
     }
     return await getConfig(forceRefresh: true);
   }
@@ -164,7 +164,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   /// 应用恢复前台
   void _onAppResumed() {
     if (_options.enableDebugLogs) {
-      print('👀 应用恢复前台');
+      debugPrint('👀 应用恢复前台');
     }
     _isAppInForeground = true;
     
@@ -178,7 +178,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   /// 应用进入后台
   void _onAppPaused() {
     if (_options.enableDebugLogs) {
-      print('🔔 应用进入后台');
+      debugPrint('🔔 应用进入后台');
     }
     _isAppInForeground = false;
     
@@ -189,7 +189,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   /// 应用被销毁
   void _onAppDetached() {
     if (_options.enableDebugLogs) {
-      print('💀 应用被销毁');
+      debugPrint('💀 应用被销毁');
     }
     dispose();
   }
@@ -200,11 +200,11 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   Future<void> _loadInitialConfig() async {
     try {
       if (_options.enableDebugLogs) {
-        print('📥 加载初始配置');
+        debugPrint('📥 加载初始配置');
       }
       _currentConfig = await _service.getConfigOnLaunch();
       if (_options.enableDebugLogs) {
-        print('✅ 初始配置加载完成: version=${_currentConfig?.version}');
+        debugPrint('✅ 初始配置加载完成: version=${_currentConfig?.version}');
       }
       
       // 通知初始配置
@@ -213,7 +213,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
       }
     } catch (e) {
       if (_options.enableDebugLogs) {
-        print('❌ 加载初始配置失败: $e');
+        debugPrint('❌ 加载初始配置失败: $e');
       }
       // 使用默认配置
       _currentConfig = _defaultConfigFactory();
@@ -227,21 +227,21 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
     Future(() async {
       try {
         if (_options.enableDebugLogs) {
-          print('🔍 恢复前台时检查配置更新');
+          debugPrint('🔍 恢复前台时检查配置更新');
         }
         final config = await _service.getConfigOnResume();
         
         // 比较配置是否有变化
         if (_hasConfigChanged(_currentConfig, config)) {
           if (_options.enableDebugLogs) {
-            print('🆕 恢复前台时发现配置更新');
+            debugPrint('🆕 恢复前台时发现配置更新');
           }
           _currentConfig = config;
           _notifyConfigChanged(config);
         }
       } catch (e) {
         if (_options.enableDebugLogs) {
-          print('⚠️ 恢复前台时检查配置失败: $e');
+          debugPrint('⚠️ 恢复前台时检查配置失败: $e');
         }
       }
     });
@@ -257,7 +257,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
         : _options.backgroundCheckInterval;  // 后台：可配置间隔
     
     if (_options.enableDebugLogs) {
-      print('⏰ 启动定时检查 (间隔: ${interval.inMinutes}分钟, 前台: $_isAppInForeground)');
+      debugPrint('⏰ 启动定时检查 (间隔: ${interval.inMinutes}分钟, 前台: $_isAppInForeground)');
     }
     
     _updateTimer = Timer.periodic(interval, (timer) async {
@@ -269,7 +269,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   Future<void> _periodicConfigCheck() async {
     try {
       if (_options.enableDebugLogs) {
-        print('⏰ 定时检查配置更新');
+        debugPrint('⏰ 定时检查配置更新');
       }
       final config = await _service.getConfig(
         forceRefresh: false,
@@ -279,14 +279,14 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
       // 检查配置是否有变化
       if (_hasConfigChanged(_currentConfig, config)) {
         if (_options.enableDebugLogs) {
-          print('🆕 定时检查发现配置更新');
+          debugPrint('🆕 定时检查发现配置更新');
         }
         _currentConfig = config;
         _notifyConfigChanged(config);
       }
     } catch (e) {
       if (_options.enableDebugLogs) {
-        print('⚠️ 定时检查配置失败: $e');
+        debugPrint('⚠️ 定时检查配置失败: $e');
       }
     }
   }
@@ -360,7 +360,7 @@ class RemoteConfigManager<T extends RemoteConfig> with WidgetsBindingObserver {
   /// 通知配置变化
   void _notifyConfigChanged(T newConfig) {
     if (_options.enableDebugLogs) {
-      print('📢 配置变化通知: version=${newConfig.version}');
+      debugPrint('📢 配置变化通知: version=${newConfig.version}');
     }
     
     // 通过Stream发送配置更新事件
